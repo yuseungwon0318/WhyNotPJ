@@ -2,55 +2,31 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
+/// 대시 메커니즘 변경 사항 : 
+/// 대시중 속도를 더하도록 함.
+/// 대시중 가속도를 1.1로 나눠서 제동을 검.
+/// firstkeypressed를 방향별로 만듬.
+/// 대시 방향을 나눔.
+/// firstkeypressedA, D 각각 초기화 부분을 따로 만듬
 /// 
-///if (dashTime <= 0)
-///{
-///    defaultSpeed = speed;
-///    Debug.Log("대시끝. 대시시간 : " + (Time.time - Debugnum1));
-
-///    if (isDash)
-///    {
-///        dashTime = defaultTime;
-///    }
-///}
-///        else
-///{
-///    dashTime -= Time.deltaTime;
-///    defaultSpeed = dashSpeed;
-///}
-///isDash = false;
-///
-/// 대시시 디폴트스피드를 대시스피드로 정하고, v
-/// 대시시간을 빼다가v
-/// 0보다 작아지면v
-/// 속도를 원상복구 v
-/// 대시상태가 되면
-/// 대시타임을 디폴트타임으로 설정
+/// 1. 이동중 방향 전환후 대시
+/// 2. 이동중 대시
+/// 3. 정지상태에서 대시
+/// 4. 대시 종료후 대시
+/// 5. 대시중 대시
+/// ####모두 의도한 대로 작동함을 확인함.####
 /// 
-/// 
-/// 
-/// ############ 논의 필요 ##############
-/// 현 대시의 문제점
-/// aa + d(aa 대시 취소, firstkey 켜짐) + "gap 이상의 시간" <- 여기서 플레이어의 기억엔 d가 남아있지 않음.
-/// + dd <- 플레이어는 dd 대시를 사용하려 함. 그러나 시스템상 아까 켜진 firstkey 판정이 들어감.(false)
-/// <- 2번째 d에서 다시 firstkey가 켜짐
-/// => "gap 이상의 시간" 동안 아무것도 안함/d 방향으로 이동후 대시하고싶으면 d(firstkey 끄기)d(firstkey 키기)d(대시)를 눌려야 함.
-/// 도움닫기 등 요소로 만들기?
-/// -> +재미요소,  +설명관련 문제
-/// 대시를 폭발력으로 변경하기? (대시에 방향 넣기)
-/// -> +현실감, -조작감
-/// 대시 캔슬키 넣기?
-/// -> +편리함, -키세팅 문제
-/// 대시 메커니즘 원상(대시로 증가한 속도를 반대방향에도 활용가능)복구?
-/// -> +개발의 편함, -개연성
-/// 
+/// 점프/낙하 변경사항 : (임시)
+/// 레이어를 만들고 레이어간 충돌을 무효화시키도록 함.
+/// -> 다시 충돌을 판정시키지는 못함
+/// ####이후 개선 필요####
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
 	#region public 변수
 	public float DashGap;
     public float speed;
-    public float dashSpeed;
+    public float dashPower;
     [Tooltip("대시 지속시간을 나타냄")]
     public float defaultTime;
     public float jumpPower;
@@ -61,8 +37,10 @@ public class PlayerController : MonoBehaviour
 	#endregion
 	#region 대시관련 변수들
 	float keyTime;
-    bool isDash = false;
-    float dashTime = 1f;
+    bool ADash = false;
+    bool DDash = false;
+    float dashTime;
+    float declinedDashSpeed = 1f; //대시 가속도 감소량 (백분율)
     float defaultSpeed;
 	bool firstKeyPressedA = false;
     bool firstKeyPressedD = false;
@@ -72,7 +50,6 @@ public class PlayerController : MonoBehaviour
 	#region 점프/낙하관련 변수들
 	bool isJump = false;
     bool sPressed = false;
-    bool spacePressed = false;
 	#endregion
 	void Start()
     {
@@ -102,23 +79,41 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         Dash();
+        if (Input.GetKeyDown(KeyCode.Space) && sPressed)
+        {
+            Physics2D.IgnoreLayerCollision(7,6);
+        }
     }
 
     void Dash()
 	{
-        if (dashTime <= 0)
-        {
-            isDash = false;
-        }
-        if (isDash)
+		if (ADash)
 		{
-            defaultSpeed = dashSpeed;
+            DDash = false;
+            rig.AddForce(Vector2.left * dashPower * declinedDashSpeed,ForceMode2D.Impulse);
             dashTime -= Time.deltaTime;
-		}
-		else
+            declinedDashSpeed /= 1.1f;
+            if (dashTime <= 0)
+            {
+                ADash = false;
+                resetD = true;
+                declinedDashSpeed = 1;
+            }
+        }
+        else if (DDash)
 		{
-            defaultSpeed = speed;
-		}
+            ADash = false;
+            rig.AddForce(Vector2.right * dashPower * declinedDashSpeed,ForceMode2D.Impulse);
+            dashTime -= Time.deltaTime;
+            declinedDashSpeed /= 1.1f;
+            if (dashTime <= 0)
+            {
+                DDash = false;
+                resetA = true;
+                declinedDashSpeed = 1;
+            }
+        }
+        
         
 	}
 
@@ -129,20 +124,20 @@ public class PlayerController : MonoBehaviour
 			
             if (Time.time < keyTime + DashGap)
             {
-                isDash = true;
+                ADash = true;
                 dashTime = defaultTime;
             }
-            resetA =true;
+            resetA = true;
         }
-        if (Input.GetKeyDown(KeyCode.A) && !firstKeyPressedA)
+        if (Input.GetKeyUp(KeyCode.A) && !firstKeyPressedA)
         {
-            if (isDash)
-                isDash = false;
             firstKeyPressedA = true;
             keyTime = Time.time;
-            resetD = true;
-            
         }
+		if (Input.GetKeyDown(KeyCode.A))
+		{
+            resetD = true;
+		}
         
 
         if (Input.GetKeyDown(KeyCode.D) && firstKeyPressedD)
@@ -150,20 +145,21 @@ public class PlayerController : MonoBehaviour
             
             if (Time.time < keyTime + DashGap)
 			{
-                isDash = true;
+                DDash = true;
                 dashTime = defaultTime;
             }
 
             resetD = true;
         }
-        if (Input.GetKeyDown(KeyCode.D) && !firstKeyPressedD)
+        if (Input.GetKeyUp(KeyCode.D) && !firstKeyPressedD)
         {
-            if (isDash)
-                isDash = false;
             firstKeyPressedD = true;
             keyTime = Time.time;
-            resetA = true;
         }
+		if (Input.GetKeyDown(KeyCode.D))
+		{
+            resetA = true;
+		}
 		if (resetA)
 		{
             firstKeyPressedA = false;
@@ -179,7 +175,7 @@ public class PlayerController : MonoBehaviour
 
     void Jump()
     {
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.Space))
+        if (Input.GetKey(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
         {
             if (sPressed == false)
             {
@@ -199,18 +195,5 @@ public class PlayerController : MonoBehaviour
         {
             isJump = false;
         }
-    }
-
-    void OnCollisionStay2D(Collision2D colS)
-    {
-        if ((sPressed == true) && Input.GetKey(KeyCode.Space))
-        {
-            GetComponent<CapsuleCollider2D>().isTrigger = true;
-        }
-    }
-
-    void OnTriggerExit2D(Collider2D triE)
-    {
-        GetComponent<CapsuleCollider2D>().isTrigger = false;
     }
 }

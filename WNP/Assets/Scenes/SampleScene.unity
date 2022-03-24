@@ -219,8 +219,8 @@ GameObject:
   - component: {fileID: 1208172248}
   - component: {fileID: 1208172247}
   - component: {fileID: 1208172246}
-  m_Layer: 0
-  m_Name: Capsule
+  m_Layer: 7
+  m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -239,10 +239,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   DashGap: 0.3
-  speed: 2
-  dashSpeed: 10
-  defaultTime: 1
-  jumpPower: 10
+  speed: 4
+  dashPower: 10
+  defaultTime: 0.25
+  jumpPower: 8
 --- !u!50 &1208172247
 Rigidbody2D:
   serializedVersion: 4
@@ -339,7 +339,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1208172245}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.05, y: 1.86, z: 0}
+  m_LocalPosition: {x: 0, y: 1.86, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -357,7 +357,7 @@ GameObject:
   - component: {fileID: 1559012157}
   - component: {fileID: 1559012156}
   m_Layer: 0
-  m_Name: Square
+  m_Name: GroundFloor
   m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -465,8 +465,8 @@ GameObject:
   - component: {fileID: 1832805924}
   - component: {fileID: 1832805923}
   - component: {fileID: 1832805922}
-  m_Layer: 0
-  m_Name: Square (1)
+  m_Layer: 6
+  m_Name: FallableFloor
   m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
