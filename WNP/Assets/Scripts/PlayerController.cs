@@ -47,32 +47,36 @@ using UnityEngine;
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
-    public float DashGap;
-
-    Rigidbody2D rig;
-
-    float keyTime;
-    bool isDash = false;
+	#region public 변수
+	public float DashGap;
     public float speed;
     public float dashSpeed;
+    [Tooltip("대시 지속시간을 나타냄")]
+    public float defaultTime;
+    public float jumpPower;
+    #endregion
+    #region private 컴포넌트
+    Rigidbody2D rig;
+    CapsuleCollider2D myCol;
+	#endregion
+	#region 대시관련 변수들
+	float keyTime;
+    bool isDash = false;
     float dashTime = 1f;
     float defaultSpeed;
-    public float defaultTime;
-    bool firstKeyPressedA = false;
+	bool firstKeyPressedA = false;
     bool firstKeyPressedD = false;
     bool resetA = false;
     bool resetD = false;
-
-    bool isJump = false;
-    public float jumpPower;
-
+	#endregion
+	#region 점프/낙하관련 변수들
+	bool isJump = false;
     bool sPressed = false;
     bool spacePressed = false;
-
-    void Start()
+	#endregion
+	void Start()
     {
         defaultSpeed = speed;
-
 
         rig = GetComponent<Rigidbody2D>();
     }
@@ -191,7 +195,7 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        if (col.collider.tag == "Ground")
+        if (col.collider.tag == "Ground" && rig.velocity == Vector2.zero)
         {
             isJump = false;
         }
