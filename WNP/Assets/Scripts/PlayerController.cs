@@ -2,19 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
-/// 대시 메커니즘 변경 사항 : 
-/// 대시중 속도를 더하도록 함.
-/// 대시중 가속도를 1.1로 나눠서 제동을 검.
-/// firstkeypressed를 방향별로 만듬.
-/// 대시 방향을 나눔.
-/// firstkeypressedA, D 각각 초기화 부분을 따로 만듬
-/// 
-/// 1. 이동중 방향 전환후 대시
-/// 2. 이동중 대시
-/// 3. 정지상태에서 대시
-/// 4. 대시 종료후 대시
-/// 5. 대시중 대시
-/// ####모두 의도한 대로 작동함을 확인함.####
+/// {
+/// 점프시 현재 속도를 판정해서 점프여부를 판단중.
+/// 이동중 점프 + 천장에 부딪힘 = 점프 불가
+/// --> 천장에 닿은 뒤 내려오면서 좌우방향 속도가 증가/감소하기에 점프 판정이 끝나지 않음.
+/// }
+/// 해결됨. 플레이어의 발에 추가로 스크립트를 붙여 땅에 떨어졌는지를 판단케함.
 /// 
 /// 점프/낙하 변경사항 : (임시)
 /// 레이어를 만들고 레이어간 충돌을 무효화시키도록 함.
@@ -50,6 +43,7 @@ public class PlayerController : MonoBehaviour
 	#region 점프/낙하관련 변수들
 	bool isJump = false;
     bool sPressed = false;
+    public static bool isGrounded = false;
 	#endregion
 	void Start()
     {
@@ -177,12 +171,11 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetKey(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
         {
-            if (sPressed == false)
+            if (!sPressed)
             {
-                if (isJump == false)
+                if (!isJump && isGrounded)
                 {
                     rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
-
                     isJump = true;
                 }
             }
@@ -191,9 +184,16 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        if (col.collider.tag == "Ground" && rig.velocity == Vector2.zero)
+        if (col.gameObject.CompareTag("Ground"))
         {
             isJump = false;
+        }
+    }
+	private void OnCollisionExit2D(Collision2D collision)
+	{
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isJump = true;
         }
     }
 }
