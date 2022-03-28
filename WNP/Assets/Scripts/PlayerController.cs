@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
     #region private 컴포넌트
     Rigidbody2D rig;
     CapsuleCollider2D myCol;
+    Collision2D firstFloor;
 	#endregion
 	#region 대시관련 변수들
 	float keyTime;
@@ -43,12 +44,14 @@ public class PlayerController : MonoBehaviour
 	#region 점프/낙하관련 변수들
 	bool isJump = false;
     bool sPressed = false;
+    bool spacePressed = false;
     public static bool isGrounded = false;
+
 	#endregion
 	void Start()
     {
         defaultSpeed = speed;
-
+        myCol = GetComponent<CapsuleCollider2D>();
         rig = GetComponent<Rigidbody2D>();
     }
 
@@ -66,6 +69,14 @@ public class PlayerController : MonoBehaviour
         {
             sPressed = false;
         }
+		if (Input.GetKey(KeyCode.Space))
+		{
+            spacePressed = true;
+		}
+		else
+		{
+            spacePressed = false;
+		}
         DetectDash();
         Jump();
     }
@@ -73,10 +84,7 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         Dash();
-        if (Input.GetKeyDown(KeyCode.Space) && sPressed)
-        {
-            Physics2D.IgnoreLayerCollision(7,6);
-        }
+        
     }
 
     void Dash()
@@ -169,7 +177,7 @@ public class PlayerController : MonoBehaviour
 
     void Jump()
     {
-        if (Input.GetKey(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKey(KeyCode.W) || spacePressed)
         {
             if (!sPressed)
             {
@@ -182,16 +190,34 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    IEnumerator CollisionOn(Collision2D collision)
+	{
+        
+        yield return new WaitForSeconds(1f);
+        Debug.Log("원상복구");
+        Physics2D.IgnoreCollision(myCol,collision.collider,false); //문제 발생. 충돌 판정이 리셋이 안되고 닿아있는 것과 판정됨.
+        
+	}
     void OnCollisionEnter2D(Collision2D col)
     {
-        if (col.gameObject.CompareTag("Ground"))
+        if (col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable"))
         {
             isJump = false;
         }
     }
+	private void OnCollisionStay2D(Collision2D collision)
+	{
+        if (sPressed && spacePressed && collision.gameObject.CompareTag("Fallable"))
+        {
+            Debug.Log("추락");
+            Physics2D.IgnoreCollision(myCol, collision.collider);
+            firstFloor = collision;
+            StartCoroutine(CollisionOn(firstFloor));
+        }
+    }
 	private void OnCollisionExit2D(Collision2D collision)
 	{
-        if (collision.gameObject.CompareTag("Ground"))
+        if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Fallable"))
         {
             isJump = true;
         }
