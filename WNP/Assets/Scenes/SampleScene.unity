@@ -238,6 +238,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fda818174458c584ca4ffe6915fec370, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  JumpGap: 0.4
   DashGap: 0.3
   speed: 4
   dashPower: 9

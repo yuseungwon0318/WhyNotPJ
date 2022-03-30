@@ -10,6 +10,7 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
 	#region public 변수
+    public float JumpGap = 0.5f;
 	public float DashGap;
     public float speed;
     public float dashPower;
@@ -23,6 +24,7 @@ public class PlayerController : MonoBehaviour
     Collider2D firstFloor;
 	#endregion
 	#region 대시관련 변수들
+    float jumpTimer = 0f;
 	float keyTime;
     bool ADash = false;
     bool DDash = false;
@@ -71,13 +73,17 @@ public class PlayerController : MonoBehaviour
             spacePressed = false;
 		}
         DetectDash();
-        Jump();
     }
 
     void FixedUpdate()
     {
         Dash();
-        
+        if (Input.GetKey(KeyCode.Space) && isGrounded && jumpTimer <= 0f)
+        {
+            Jump();
+            jumpTimer = JumpGap;
+        }
+        jumpTimer -= Time.fixedDeltaTime;
     }
 
     void Dash()
@@ -125,7 +131,7 @@ public class PlayerController : MonoBehaviour
             }
             resetA = true;
         }
-        if (Input.GetKeyUp(KeyCode.A) && !firstKeyPressedA)
+        if (Input.GetKey(KeyCode.A) && !firstKeyPressedA)
         {
             firstKeyPressedA = true;
             keyTime = Time.time;
@@ -147,7 +153,7 @@ public class PlayerController : MonoBehaviour
 
             resetD = true;
         }
-        if (Input.GetKeyUp(KeyCode.D) && !firstKeyPressedD)
+        if (Input.GetKey(KeyCode.D) && !firstKeyPressedD)
         {
             firstKeyPressedD = true;
             keyTime = Time.time;
@@ -186,9 +192,7 @@ public class PlayerController : MonoBehaviour
     IEnumerator CollisionOn(Collider2D col)
 	{
         Physics2D.IgnoreCollision(myCol, col);
-        Debug.Log("추락" + myCol + " and " + col);
         yield return new WaitForSeconds(1f);
-        Debug.Log("원상복구" + myCol +" and " + col);
         Physics2D.IgnoreCollision(myCol, col, false); //문제 발생. 충돌 판정이 리셋이 안되고 닿아있는 것과 판정됨.
 
     }
