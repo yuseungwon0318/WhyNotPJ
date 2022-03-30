@@ -2,17 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
-/// {
-/// 점프시 현재 속도를 판정해서 점프여부를 판단중.
-/// 이동중 점프 + 천장에 부딪힘 = 점프 불가
-/// --> 천장에 닿은 뒤 내려오면서 좌우방향 속도가 증가/감소하기에 점프 판정이 끝나지 않음.
-/// }
-/// 해결됨. 플레이어의 발에 추가로 스크립트를 붙여 땅에 떨어졌는지를 판단케함.
-/// 
-/// 점프/낙하 변경사항 : (임시)
-/// 레이어를 만들고 레이어간 충돌을 무효화시키도록 함.
-/// -> 다시 충돌을 판정시키지는 못함
-/// ####이후 개선 필요####
+/// 점프 낙하 구현 완료. 
+/// 지금껏 사용하던 collision2d는 충돌자체를 정보로 가지기에
+/// 충돌이 다시 일어나면 충돌정보가 바뀜.
+/// 그래서 collider2d로 받아와 처리.
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
@@ -27,7 +20,7 @@ public class PlayerController : MonoBehaviour
     #region private 컴포넌트
     Rigidbody2D rig;
     CapsuleCollider2D myCol;
-    Collision2D firstFloor;
+    Collider2D firstFloor;
 	#endregion
 	#region 대시관련 변수들
 	float keyTime;
@@ -121,6 +114,7 @@ public class PlayerController : MonoBehaviour
 
     void DetectDash()
     {
+        
         if (Input.GetKeyDown(KeyCode.A) && firstKeyPressedA)
         {
 			
@@ -172,7 +166,6 @@ public class PlayerController : MonoBehaviour
             firstKeyPressedD = false;
             resetD = false;
 		}
-        
     }
 
     void Jump()
@@ -190,14 +183,15 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    IEnumerator CollisionOn(Collision2D collision)
+    IEnumerator CollisionOn(Collider2D col)
 	{
-        
+        Physics2D.IgnoreCollision(myCol, col);
+        Debug.Log("추락" + myCol + " and " + col);
         yield return new WaitForSeconds(1f);
-        Debug.Log("원상복구");
-        Physics2D.IgnoreCollision(myCol,collision.collider,false); //문제 발생. 충돌 판정이 리셋이 안되고 닿아있는 것과 판정됨.
-        
-	}
+        Debug.Log("원상복구" + myCol +" and " + col);
+        Physics2D.IgnoreCollision(myCol, col, false); //문제 발생. 충돌 판정이 리셋이 안되고 닿아있는 것과 판정됨.
+
+    }
     void OnCollisionEnter2D(Collision2D col)
     {
         if (col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable"))
@@ -209,9 +203,8 @@ public class PlayerController : MonoBehaviour
 	{
         if (sPressed && spacePressed && collision.gameObject.CompareTag("Fallable"))
         {
-            Debug.Log("추락");
-            Physics2D.IgnoreCollision(myCol, collision.collider);
-            firstFloor = collision;
+            firstFloor = collision.collider;
+            
             StartCoroutine(CollisionOn(firstFloor));
         }
     }
