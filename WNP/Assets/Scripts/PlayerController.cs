@@ -6,6 +6,18 @@ using UnityEngine;
 /// 지금껏 사용하던 collision2d는 충돌자체를 정보로 가지기에
 /// 충돌이 다시 일어나면 충돌정보가 바뀜.
 /// 그래서 collider2d로 받아와 처리.
+/// 
+/// 
+/// 
+/// 
+/// #########문제발생##############
+/// 조작을 하지 않는 상태에서 S + 스페이스를 누를시
+/// 내려감이 먹히지 않음
+/// 문제의 원인 : 위에 적힌대로 collision2d가 충돌을 정보로 가져서
+/// 아무 조작도 안하면 갱신이 안되니 태그비교에서 막힘. (지금 아래 코드 218줄에서 주석처리한부분)
+/// 해결하려면 태그비교를 없애고 레이어비교로 전환해야하는데, 지금 추락플랫폼에 사용중인 플랫폼이펙터2D는 레이어를 안먹음
+/// 전용 특수레이어로 충돌은 비교해야하는데, 이걸 처음해보는거라 난관에 부딪힘.
+/// 도움!
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
@@ -22,6 +34,7 @@ public class PlayerController : MonoBehaviour
     Rigidbody2D rig;
     CapsuleCollider2D myCol;
     Collider2D firstFloor;
+    PlatformEffector2D myPlat;
 	#endregion
 	#region 대시관련 변수들
     float jumpTimer = 0f;
@@ -48,6 +61,7 @@ public class PlayerController : MonoBehaviour
         defaultSpeed = speed;
         myCol = GetComponent<CapsuleCollider2D>();
         rig = GetComponent<Rigidbody2D>();
+        myPlat = GetComponent<PlatformEffector2D>();
     }
 
     void Update()
@@ -73,17 +87,13 @@ public class PlayerController : MonoBehaviour
             spacePressed = false;
 		}
         DetectDash();
+        Jump();
     }
 
     void FixedUpdate()
     {
         Dash();
-        if (Input.GetKey(KeyCode.Space) && isGrounded && jumpTimer <= 0f)
-        {
-            Jump();
-            jumpTimer = JumpGap;
-        }
-        jumpTimer -= Time.fixedDeltaTime;
+        Debug.Log(rig.velocity.y);
     }
 
     void Dash()
@@ -180,7 +190,7 @@ public class PlayerController : MonoBehaviour
         {
             if (!sPressed)
             {
-                if (!isJump && isGrounded)
+                if (!isJump && isGrounded && rig.velocity.y <= 0)
                 {
                     rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
                     isJump = true;
@@ -189,11 +199,11 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    IEnumerator CollisionOn(Collider2D col)
+    IEnumerator CollisionOn(Collider2D collider)
 	{
-        Physics2D.IgnoreCollision(myCol, col);
+		///////무시
         yield return new WaitForSeconds(1f);
-        Physics2D.IgnoreCollision(myCol, col, false); //문제 발생. 충돌 판정이 리셋이 안되고 닿아있는 것과 판정됨.
+        ///////복원
 
     }
     void OnCollisionEnter2D(Collision2D col)
@@ -205,7 +215,7 @@ public class PlayerController : MonoBehaviour
     }
 	private void OnCollisionStay2D(Collision2D collision)
 	{
-        if (sPressed && spacePressed && collision.gameObject.CompareTag("Fallable"))
+        if (sPressed && spacePressed /*&& collision.gameObject.CompareTag("Fallable")*/)
         {
             firstFloor = collision.collider;
             
