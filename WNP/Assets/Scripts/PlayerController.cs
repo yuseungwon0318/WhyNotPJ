@@ -66,8 +66,9 @@ public class PlayerController : MonoBehaviour
 	bool isJump = false;
     bool sPressed = false;
     bool spacePressed = false;
+    public bool fallChanged = false;
     public static bool isGrounded = false;
-
+    public bool isFall = false;
 	#endregion
 	void Start()
     {
@@ -84,13 +85,6 @@ public class PlayerController : MonoBehaviour
 		{
             rig.velocity +=Vector2.down * 0.001f;
 		}
-        
-        DetectDash();
-        Jump();
-    }
-
-    void FixedUpdate()
-    {
         if (Input.GetKey(KeyCode.S))
         {
             sPressed = true;
@@ -107,6 +101,13 @@ public class PlayerController : MonoBehaviour
         {
             spacePressed = false;
         }
+        DetectDash();
+        Jump();
+    }
+
+    void FixedUpdate()
+    {
+        
         Dash();
     }
 
@@ -215,9 +216,12 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator CollisionOn()
 	{
-		IgnoreFloor.PlatformIgnore();
-        yield return new WaitForSeconds(1f);
-        IgnoreFloor.PlatformRecover();
+        fallChanged = true;
+        isFall = true;
+        yield return new WaitForSeconds(0.7f); //0.7초간 무효화
+        isFall = false;
+		yield return new WaitForSeconds(0.1f); //복구시킬 시간 주기
+        fallChanged = false;
 
     }
     void OnCollisionEnter2D(Collision2D col)
