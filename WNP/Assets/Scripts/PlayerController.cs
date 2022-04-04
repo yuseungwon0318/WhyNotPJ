@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
+/// 
+/// 
 /// 점프 낙하 구현 완료
 /// 이제 가만히있다가도 내려갈 수 있음.
 /// 아래키를 누를때 속도를 조금 더하는 방식으로
