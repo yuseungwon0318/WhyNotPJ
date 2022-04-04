@@ -4,20 +4,34 @@ using UnityEngine;
 
 public class IgnoreFloor : MonoBehaviour
 {
-	public static IgnoreFloor ignoreFloor;
 	public int ignoreLayer = 7;
-	PlatformEffector2D myPlat;
+	public PlatformEffector2D myPlat;
+	public PlayerController pc;
 	private void Start()
 	{
 		myPlat = GetComponent<PlatformEffector2D>();
-		ignoreFloor = GetComponent<IgnoreFloor>();
 	}
-	public static void PlatformIgnore()
+	private void Update()
 	{
-		ignoreFloor.myPlat.colliderMask  &= ~(1 << ignoreFloor.ignoreLayer);
+		if (pc.fallChanged)
+		{
+			if (pc.isFall)
+			{
+				PlatformIgnore();
+			}
+			else
+			{
+				PlatformRecover();
+			}
+		}
 	}
-	public static void PlatformRecover()
+
+	public void PlatformIgnore()
 	{
-		ignoreFloor.myPlat.colliderMask |= 1 << ignoreFloor.ignoreLayer;
+		myPlat.colliderMask &= ~(1 << ignoreLayer);
+	}
+	public void PlatformRecover()
+	{
+		myPlat.colliderMask |= 1 << ignoreLayer;
 	}
 }
