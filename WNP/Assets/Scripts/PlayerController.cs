@@ -49,8 +49,9 @@ public class PlayerController : MonoBehaviour
     #region private 컴포넌트
     Rigidbody2D rig;
     Collider2D firstFloor;
-	#endregion
-	#region 대시관련 변수들
+    #endregion
+    #region 대시관련 변수들
+    Vector2 v;
 	float keyTime;
     bool ADash = false;
     bool DDash = false;
@@ -68,18 +69,61 @@ public class PlayerController : MonoBehaviour
     bool spacePressed = false;
     public static bool isGrounded = false;
 
-	#endregion
-	void Start()
+    #endregion
+    #region 애니메이션 관련 변수
+    Animator animator;
+
+    #endregion
+
+    void Start()
     {
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
     void Update()
     {
         float hor = Input.GetAxis("Horizontal");
+        if (hor > 0)
+        {
+            animator.SetTrigger("Right_run");
+            animator.ResetTrigger("Left_run");
+            animator.ResetTrigger("Right_idle");
+            animator.ResetTrigger("Left_idle");
+        }
 
-        rig.velocity = new Vector2(hor * defaultSpeed, rig.velocity.y);
+        if (hor < 0)
+        {
+            animator.SetTrigger("Left_run");
+            animator.ResetTrigger("Right_run");
+            animator.ResetTrigger("Right_idle");
+            animator.ResetTrigger("Left_idle");
+        }
+        
+        if (hor == 0)
+        {
+            if (v.normalized == Vector2.left)
+            {
+                animator.SetTrigger("Left_idle");
+                animator.ResetTrigger("Left_run");
+                animator.ResetTrigger("Right_run");
+            }
+            if (v.normalized == Vector2.right)
+            {
+                animator.SetTrigger("Right_idle");
+                animator.ResetTrigger("Left_run");
+                animator.ResetTrigger("Right_run");
+            }
+        }
+        else
+        {
+            animator.ResetTrigger("Right_idle");
+            animator.ResetTrigger("Left_idle");
+        }
+
+        v = new Vector2(hor * defaultSpeed, rig.velocity.y);
+        rig.velocity = v;
 		if (Input.GetKeyDown(KeyCode.S))
 		{
             rig.velocity +=Vector2.down * 0.001f;
@@ -240,5 +284,10 @@ public class PlayerController : MonoBehaviour
         {
             isJump = true;
         }
+    }
+
+    void AnimationUpdate()
+    {
+
     }
 }
