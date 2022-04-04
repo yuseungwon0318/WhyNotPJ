@@ -51,8 +51,9 @@ public class PlayerController : MonoBehaviour
     #region private 컴포넌트
     Rigidbody2D rig;
     Collider2D firstFloor;
-	#endregion
-	#region 대시관련 변수들
+    #endregion
+    #region 대시관련 변수들
+    Vector2 v;
 	float keyTime;
     bool ADash = false;
     bool DDash = false;
@@ -68,25 +69,74 @@ public class PlayerController : MonoBehaviour
 	bool isJump = false;
     bool sPressed = false;
     bool spacePressed = false;
-    public bool fallChanged = false;
     public static bool isGrounded = false;
-    public bool isFall = false;
-	#endregion
-	void Start()
+
+    #endregion
+    #region 애니메이션 관련 변수
+    Animator animator;
+
+    #endregion
+
+    void Start()
     {
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
     void Update()
     {
         float hor = Input.GetAxis("Horizontal");
+        if (hor > 0)
+        {
+            animator.SetTrigger("Right_run");
+            animator.ResetTrigger("Left_run");
+            animator.ResetTrigger("Right_idle");
+            animator.ResetTrigger("Left_idle");
+        }
 
-        rig.velocity = new Vector2(hor * defaultSpeed, rig.velocity.y);
+        if (hor < 0)
+        {
+            animator.SetTrigger("Left_run");
+            animator.ResetTrigger("Right_run");
+            animator.ResetTrigger("Right_idle");
+            animator.ResetTrigger("Left_idle");
+        }
+        
+        if (hor == 0)
+        {
+            if (v.normalized == Vector2.left)
+            {
+                animator.SetTrigger("Left_idle");
+                animator.ResetTrigger("Left_run");
+                animator.ResetTrigger("Right_run");
+            }
+            if (v.normalized == Vector2.right)
+            {
+                animator.SetTrigger("Right_idle");
+                animator.ResetTrigger("Left_run");
+                animator.ResetTrigger("Right_run");
+            }
+        }
+        else
+        {
+            animator.ResetTrigger("Right_idle");
+            animator.ResetTrigger("Left_idle");
+        }
+
+        v = new Vector2(hor * defaultSpeed, rig.velocity.y);
+        rig.velocity = v;
 		if (Input.GetKeyDown(KeyCode.S))
 		{
             rig.velocity +=Vector2.down * 0.001f;
 		}
+        
+        DetectDash();
+        Jump();
+    }
+
+    void FixedUpdate()
+    {
         if (Input.GetKey(KeyCode.S))
         {
             sPressed = true;
@@ -103,13 +153,6 @@ public class PlayerController : MonoBehaviour
         {
             spacePressed = false;
         }
-        DetectDash();
-        Jump();
-    }
-
-    void FixedUpdate()
-    {
-        
         Dash();
     }
 
@@ -218,12 +261,9 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator CollisionOn()
 	{
-        fallChanged = true;
-        isFall = true;
-        yield return new WaitForSeconds(0.7f); //0.7초간 무효화
-        isFall = false;
-		yield return new WaitForSeconds(0.1f); //복구시킬 시간 주기
-        fallChanged = false;
+		IgnoreFloor.PlatformIgnore();
+        yield return new WaitForSeconds(1f);
+        IgnoreFloor.PlatformRecover();
 
     }
     void OnCollisionEnter2D(Collision2D col)
@@ -246,5 +286,10 @@ public class PlayerController : MonoBehaviour
         {
             isJump = true;
         }
+    }
+
+    void AnimationUpdate()
+    {
+
     }
 }
