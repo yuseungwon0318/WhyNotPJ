@@ -106,7 +106,7 @@ public class PlayerController : MonoBehaviour
         
         if (Mathf.Approximately(hor,0))
         {
-            if (v.normalized == Vector2.left)
+            if (v.normalized.x == -1f)
             {
                 Debug.Log("idleL"); //호출 실패 (점프중 방향전환 정지후 낙하)
                 animator.SetTrigger("Left_idle");
@@ -114,7 +114,7 @@ public class PlayerController : MonoBehaviour
                 animator.ResetTrigger("Right_run");
                 animator.ResetTrigger("Right_idle");
             }
-            if (v.normalized == Vector2.right)
+            if (v.normalized.x == 1f)
             {
                 Debug.Log("idleR"); //호출 실패 (점프중 방향전환 정지후 낙하)
                 animator.SetTrigger("Right_idle");
@@ -130,13 +130,21 @@ public class PlayerController : MonoBehaviour
         }
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
-            animator.SetBool("Right_jump", true);
-            Debug.Log("점프");
+            if(v.normalized.x == 1f)
+			{
+                animator.SetBool("Right_jump", true);
+            }
+            else if(v.normalized.x == -1f)
+			{
+                animator.SetBool("Left_jump", true);
+			}
 		}
 		else
 		{
-            Debug.Log("점프끝");
-            animator.SetBool("Right_jump", false);
+            if(animator.GetBool("Right_jump"))
+                animator.SetBool("Right_jump", false);
+            else if( animator.GetBool("Left_jump"))
+                animator.SetBool("Left_jump", false);
 		}
         
         v = new Vector2(hor * defaultSpeed, rig.velocity.y);
