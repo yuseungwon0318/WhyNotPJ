@@ -258,6 +258,8 @@ MonoBehaviour:
   dashPower: 9
   defaultTime: 0.25
   jumpPower: 10
+  isFall: 0
+  fallchanged: 0
 --- !u!50 &1208172247
 Rigidbody2D:
   serializedVersion: 4
@@ -354,7 +356,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1208172245}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.28, y: -1.18, z: 0}
+  m_LocalPosition: {x: 0, y: -1.18, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1489978252}
@@ -425,7 +427,7 @@ CircleCollider2D:
   m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: -1.5}
+  m_Offset: {x: 0, y: -1.31}
   serializedVersion: 2
   m_Radius: 0.2
 --- !u!114 &1489978254
@@ -692,3 +694,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ignoreLayer: 7
+  myPlat: {fileID: 0}
+  pc: {fileID: 1208172246}

@@ -50,7 +50,6 @@ public class PlayerController : MonoBehaviour
     #endregion
     #region private 컴포넌트
     Rigidbody2D rig;
-    Collider2D firstFloor;
     #endregion
     #region 대시관련 변수들
     Vector2 v;
@@ -70,7 +69,8 @@ public class PlayerController : MonoBehaviour
     bool sPressed = false;
     bool spacePressed = false;
     public static bool isGrounded = false;
-
+    public bool isFall = false;
+    public bool fallchanged = false;
     #endregion
     #region 애니메이션 관련 변수
     Animator animator;
@@ -261,10 +261,12 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator CollisionOn()
 	{
-		IgnoreFloor.PlatformIgnore();
-        yield return new WaitForSeconds(1f);
-        IgnoreFloor.PlatformRecover();
-
+        fallchanged = true;
+		isFall =true;
+        yield return new WaitForSeconds(0.7f);
+        isFall = false;
+        yield return null; // 1프레임 대기
+        fallchanged = false;
     }
     void OnCollisionEnter2D(Collision2D col)
     {

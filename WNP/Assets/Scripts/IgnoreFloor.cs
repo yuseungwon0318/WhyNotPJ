@@ -13,7 +13,7 @@ public class IgnoreFloor : MonoBehaviour
 	}
 	private void Update()
 	{
-		if (pc.fallChanged)
+		if (pc.fallchanged)
 		{
 			if (pc.isFall)
 			{
@@ -24,8 +24,8 @@ public class IgnoreFloor : MonoBehaviour
 				PlatformRecover();
 			}
 		}
-	}
 
+	}
 	public void PlatformIgnore()
 	{
 		myPlat.colliderMask &= ~(1 << ignoreLayer);
