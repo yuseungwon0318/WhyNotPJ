@@ -52,7 +52,7 @@ public class PlayerController : MonoBehaviour
     Rigidbody2D rig;
     #endregion
     #region 대시관련 변수들
-    Vector2 v;
+    Vector2 v = new Vector2(1,0);
 	float keyTime;
     bool ADash = false;
     bool DDash = false;
@@ -86,47 +86,52 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        animator.SetFloat("V", rig.velocity.y);
-        float hor = Input.GetAxis("Horizontal");
-        if (hor > 0)
+        animator.SetBool("isFall", isJump);
+        animator.SetFloat("X", rig.velocity.x);
+        animator.SetFloat("Y", rig.velocity.y);
+		float hor = Input.GetAxis("Horizontal");
+		if (hor > 0)
         {
-            animator.SetTrigger("Right_run");
             animator.ResetTrigger("Left_run");
             animator.ResetTrigger("Right_idle");
             animator.ResetTrigger("Left_idle");
+            animator.SetTrigger("Right_run");
+            
         }
 
-        if (hor < 0)
+        else if (hor < 0)
         {
-            animator.SetTrigger("Left_run");
             animator.ResetTrigger("Right_run");
             animator.ResetTrigger("Right_idle");
             animator.ResetTrigger("Left_idle");
+            animator.SetTrigger("Left_run");
+            
         }
         
-        if (Mathf.Approximately(hor,0))
+        else if (Mathf.Approximately(rig.velocity.x,0)) 
         {
             if (v.normalized.x == -1f)
             {
-                Debug.Log("idleL"); //호출 실패 (점프중 방향전환 정지후 낙하)
-                animator.SetTrigger("Left_idle");
                 animator.ResetTrigger("Left_run");
                 animator.ResetTrigger("Right_run");
                 animator.ResetTrigger("Right_idle");
+                animator.SetTrigger("Left_idle");
+                
             }
-            if (v.normalized.x == 1f)
+            else if (v.normalized.x == 1f)
             {
-                Debug.Log("idleR"); //호출 실패 (점프중 방향전환 정지후 낙하)
-                animator.SetTrigger("Right_idle");
                 animator.ResetTrigger("Left_run");
                 animator.ResetTrigger("Right_run");
                 animator.ResetTrigger("Left_idle");
+                animator.SetTrigger("Right_idle");
             }
-        }
-        else
-        {
-            animator.ResetTrigger("Right_idle");
-            animator.ResetTrigger("Left_idle");
+			else
+			{
+                animator.ResetTrigger("Left_run");
+                animator.ResetTrigger("Right_run");
+                animator.ResetTrigger("Right_idle");
+                animator.SetTrigger("Left_idle");
+			}
         }
 		if (Input.GetKeyDown(KeyCode.Space))
 		{
@@ -137,6 +142,10 @@ public class PlayerController : MonoBehaviour
             else if(v.normalized.x == -1f)
 			{
                 animator.SetBool("Left_jump", true);
+			}
+			else
+			{
+                animator.SetTrigger("Right_jump");
 			}
 		}
 		else
