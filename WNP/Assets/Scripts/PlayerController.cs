@@ -1,20 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
-/// 
-/// 
-/// 점프 낙하 구현 완료
-/// 이제 가만히있다가도 내려갈 수 있음.
-/// 아래키를 누를때 속도를 조금 더하는 방식으로
-/// 충돌판정을 활성화시켜서
-/// 스페이스를 누르면 내려가게끔 함.
-/// 
-/// 그리고 S스페이스로 충돌판정을 잠시 무효화시킬수 있음.
-/// 지금은 1초인데 나중에 문제발생하면
-/// 층간 높이가 너무 적절해서 발생한 문제일테니
-/// 층높이를 바꾸거나 시간을 조금 조절하면 될듯.
-/// 
 /// coroutine에 대한 설명.
 /// 아래 IEnumerator라고 적혀있는 함수가 코루틴이다.
 /// 코루틴은 일반 함수와는 다르게 리턴값을 여러번 줄 수 있는데,
@@ -47,9 +35,11 @@ public class PlayerController : MonoBehaviour
     [Tooltip("대시 지속시간을 나타냄")]
     public float defaultTime;
     public float jumpPower;
+    public float slipRate;
     #endregion
     #region private 컴포넌트
     Rigidbody2D rig;
+    Animator animator;
     #endregion
     #region 대시관련 변수들
     Vector2 v = new Vector2(1,0);
@@ -72,99 +62,90 @@ public class PlayerController : MonoBehaviour
     public bool isFall = false;
     public bool fallchanged = false;
     #endregion
-    #region 애니메이션 관련 변수
-    Animator animator;
+    #region 운동상태 관련 변수
+    int moveState = 0;
+    enum CharState
+	{
+        None = -1,
+        Normal,
+        Cling,
+        WallJumpR,
+        WallJumpL,
+
+	}
 
     #endregion
-
-    void Start()
+    #region raycast 등
+    RaycastHit2D rayHitR;
+    RaycastHit2D rayHitL;
+    float rayLen = 1.0f;
+    int ignoreLayer = 7;
+    #endregion
+	void Start()
     {
+        ignoreLayer = -1 & ~(1 << ignoreLayer);
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        animator.SetBool("LookDir", true);
     }
 
     void Update()
     {
-        animator.SetBool("isFall", isJump);
-        animator.SetFloat("X", rig.velocity.x);
-        animator.SetFloat("Y", rig.velocity.y);
-		float hor = Input.GetAxis("Horizontal");
-		if (hor > 0)
-        {
-            animator.ResetTrigger("Left_run");
-            animator.ResetTrigger("Right_idle");
-            animator.ResetTrigger("Left_idle");
-            animator.SetTrigger("Right_run");
-            
-        }
-
-        else if (hor < 0)
-        {
-            animator.ResetTrigger("Right_run");
-            animator.ResetTrigger("Right_idle");
-            animator.ResetTrigger("Left_idle");
-            animator.SetTrigger("Left_run");
-            
-        }
-        
-        else if (Mathf.Approximately(rig.velocity.x,0)) 
-        {
-            if (v.normalized.x == -1f)
-            {
-                animator.ResetTrigger("Left_run");
-                animator.ResetTrigger("Right_run");
-                animator.ResetTrigger("Right_idle");
-                animator.SetTrigger("Left_idle");
-                
-            }
-            else if (v.normalized.x == 1f)
-            {
-                animator.ResetTrigger("Left_run");
-                animator.ResetTrigger("Right_run");
-                animator.ResetTrigger("Left_idle");
-                animator.SetTrigger("Right_idle");
-            }
-			else
-			{
-                animator.ResetTrigger("Left_run");
-                animator.ResetTrigger("Right_run");
-                animator.ResetTrigger("Right_idle");
-                animator.SetTrigger("Left_idle");
-			}
-        }
-		if (Input.GetKeyDown(KeyCode.Space))
+        if(moveState == (int)CharState.WallJumpR)
 		{
-            if(v.normalized.x == 1f)
-			{
-                animator.SetBool("Right_jump", true);
-            }
-            else if(v.normalized.x == -1f)
-			{
-                animator.SetBool("Left_jump", true);
-			}
-			else
-			{
-                animator.SetTrigger("Right_jump");
-			}
-		}
+            rig.velocity = new Vector2(defaultSpeed, rig.velocity.y);
+		} //오른점
+        else if( moveState == (int)CharState.WallJumpL)
+		{
+            rig.velocity = new Vector2(-defaultSpeed, rig.velocity.y);
+		} //왼점
+		else if (moveState == (int)CharState.Cling)
+		{
+            
+            rig.gravityScale = 0;
+            rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
+            rayHitR = Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer);
+            rayHitL = Physics2D.Raycast(transform.position, Vector2.left, rayLen, ignoreLayer);
+			WallJump();
+		} // 벽잡은 상태 코드들
 		else
 		{
-            if(animator.GetBool("Right_jump"))
-                animator.SetBool("Right_jump", false);
-            else if( animator.GetBool("Left_jump"))
-                animator.SetBool("Left_jump", false);
-		}
+            animator.SetBool("isJump", false);
+            animator.SetFloat("X", rig.velocity.x);
+            animator.SetFloat("Y", rig.velocity.y);
+            float hor = Input.GetAxis("Horizontal");
+            if (hor > 0)
+            {
+                animator.SetBool("LookDir", false);
+                animator.SetBool("isIdle", false);
+                animator.SetBool("isRun", true);
+            }
+
+            if (hor < 0)
+            {
+                animator.SetBool("LookDir", true);
+                animator.SetBool("isIdle", false);
+                animator.SetBool("isRun", true);
+            }
+
+            if (Mathf.Approximately(rig.velocity.x, 0))
+            {
+                animator.SetBool("isIdle", true);
+                animator.SetBool("isRun", false);
+            }
+
+            v = new Vector2(hor * defaultSpeed, rig.velocity.y);
+            rig.velocity = v;
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                rig.velocity += Vector2.down * 0.001f;
+            }
+
+            DetectDash();
+            Jump();
+        } // 일반 상태 코드들
         
-        v = new Vector2(hor * defaultSpeed, rig.velocity.y);
-        rig.velocity = v;
-		if (Input.GetKeyDown(KeyCode.S))
-		{
-            rig.velocity +=Vector2.down * 0.001f;
-		}
-        
-        DetectDash();
-        Jump();
     }
 
     void FixedUpdate()
@@ -193,7 +174,9 @@ public class PlayerController : MonoBehaviour
 		if (ADash)
 		{
             DDash = false;
-            rig.AddForce(Vector2.left * dashPower * declinedDashSpeed,ForceMode2D.Impulse);
+            rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
+            
+
             dashTime -= Time.deltaTime;
             declinedDashSpeed /= 1.1f;
             if (dashTime <= 0)
@@ -206,7 +189,8 @@ public class PlayerController : MonoBehaviour
         else if (DDash)
 		{
             ADash = false;
-            rig.AddForce(Vector2.right * dashPower * declinedDashSpeed,ForceMode2D.Impulse);
+            rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
+            
             dashTime -= Time.deltaTime;
             declinedDashSpeed /= 1.1f;
             if (dashTime <= 0)
@@ -276,16 +260,38 @@ public class PlayerController : MonoBehaviour
 		}
     }
 
+    void WallJump()
+	{
+        if(Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
+		{
+            rig.gravityScale = 1;
+            if (rayHitR.transform != null) //오른쪽에 물체
+            {
+                moveState = (int)CharState.WallJumpL;
+            }
+            else if(rayHitL.transform != null) //왼쪽에 물체
+            {
+                moveState = (int)CharState.WallJumpR;
+            }
+            if(rayHitL.transform != null || rayHitR.transform != null)
+			{
+                rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
+            }
+            
+            
+        }
+	}
     void Jump()
     {
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
+        if (!sPressed)
         {
-            if (!sPressed)
+            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
             {
                 if (!isJump && isGrounded && rig.velocity.y <= 0)
                 {
                     rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
                     isJump = true;
+                    animator.SetBool("isJump", true);
                 }
             }
         }
@@ -302,9 +308,17 @@ public class PlayerController : MonoBehaviour
     }
     void OnCollisionEnter2D(Collision2D col)
     {
-        if (col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable"))
+        if(col.gameObject.layer == 8)
+		{
+            moveState = (int)CharState.Cling;
+            rig.velocity = Vector2.zero;
+            isJump = false;
+		}
+        else if (col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable"))
         {
             isJump = false;
+            moveState = (int)CharState.Normal;
+            rig.gravityScale = 1;
         }
     }
 	private void OnCollisionStay2D(Collision2D collision)
@@ -320,10 +334,5 @@ public class PlayerController : MonoBehaviour
         {
             isJump = true;
         }
-    }
-
-    void AnimationUpdate()
-    {
-
     }
 }
