@@ -4,29 +4,43 @@ using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
-/// 플랫폼과 붙잡기벽에 동시에 닿은 상태에서, 벽점프가 활성화 즉시 취소됨.
+/// 
+/// 계단 등 빗길에서 점프가 안먹힘.
+/// Y축 속도가 있어서 그런것일 수도 있다.
+/// 
+/// 벽에 비비기는 안되는데, 벽에 비비고 바닥에 내려가면 점프상태가 해제되지 않음.
+/// 계단에 올라서 조금 공중에 뜨면 다시 점프가 가능해짐. ( 점프 상태가 해제됨 )
+/// 
+/// 
+/// <해결됨> 
+/// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
+/// 
+/// P2*잡기 불가 벽이 있을 경우, 거기에 비비면 공중에 뜸.
+/// 
+/// P3*계단 픽셀이 조금 맞지 않음. 자를때의 문제일 수도 있다.
+/// 
+/// P4*플랫폼과 붙잡기벽에 동시에 닿은 상태에서, 벽점프가 활성화 즉시 취소됨.
 /// 그러므로 가속도가 중간에 멈춰서 어색한 운동을 보임.
 /// 플랫폼도 바닥으로 치는 데다가, 플랫폼과 닿으면 벽점프가 일반상태로 전환됨.
 /// 
-/// 게다가 플랫폼이펙터 사용중 아래에서 점프했을 때, 플랫폼에 스치면
-/// 아주 잠시동안 isJump가 비활성화됨.
-/// 지금은 점프조건을 위로 향하는 힘이 없을 때로 정해놓아서 문제없지만,
-/// 이후에 애매한 상황이 나올 수도 있음.
-/// 
-/// 계단 오브젝트와 닿아있다가 평지로 넘어가면 조금 하늘로 뜸.
+/// P5*계단 오브젝트와 닿아있다가 평지로 넘어가면 조금 하늘로 뜸. (안고칠거면 상관없음.)
 /// 관성의 법칙 때문에 그런건데, 이동 방식을 전면 수정해야할 필요가 보임.
 /// 현재 이동은 힘을 가하여 속도를 임의로 변화시키면서 하고 있는데,
 /// 그렇기에 위 현상을 막기 위해 리지드바디의 축을 잠그면 이동도 묶임.
 /// 
-/// 계단 픽셀이 조금 맞지 않음. 자를때의 문제일 수도 있다.
+/// P6*플랫폼이펙터 사용중 아래에서 점프했을 때, 플랫폼에 스치면
+/// 아주 잠시동안 isJump가 비활성화됨.
+/// 지금은 점프조건을 위로 향하는 힘이 없을 때로 정해놓아서 문제없지만,
+/// 이후에 애매한 상황이 나올 수도 있음.
 /// 
-/// 잡기 불가 벽이 있을 경우, 거기에 비비면 공중에 뜸.
-/// 이것을 해결하려면 추가 collider를 붙여 마찰을 없애야 하는데, 그러면 벽붙잡기를 킬수가 없음.
 /// 
-/// <해결됨> 
-/// P*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
 /// 
-/// S*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
+/// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
+/// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
+/// S3*자를 때 검은 부분이 조금 같이 잘림. 크기를 2픽셀정도 줄여서 해결.
+/// S4*위 방향으로 힘이 가해지면 착지판정을 받지 않도록 함.
+/// S5*계단과 바닥의 collider를 조정함. 계단을 더 짧게, 바닥을 더 얕게 하면 됨.
+/// S6*현실과 타협함.
 /// </해결됨>
 ///  >>>>>>>>이동 관련 코드의 전면 수정이 필요해 보임. 또는 그외의 해결 방법을 모색해야 할 수도 있음,
 /// 
@@ -47,7 +61,7 @@ public class PlayerController : MonoBehaviour
     Animator animator;
     #endregion
     #region 대시관련 변수들
-    Vector2 v = new Vector2(1,0);
+    Vector2 v;
 	float keyTime;
     bool ADash = false;
     bool DDash = false;
@@ -88,7 +102,7 @@ public class PlayerController : MonoBehaviour
     #endregion
 	void Start()
     {
-        ignoreLayer = -1 & ~(1 << ignoreLayer);
+        ignoreLayer = -1 & ~(7 << (ignoreLayer-2));
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
@@ -99,10 +113,12 @@ public class PlayerController : MonoBehaviour
     {
         if(moveState == (int)CharState.WallJumpR)
 		{
+            Debug.Log("오른쪽으로 점프");
             rig.velocity = new Vector2(defaultSpeed, rig.velocity.y);
 		} //오른점
         else if( moveState == (int)CharState.WallJumpL)
 		{
+            Debug.Log("왼점");
             rig.velocity = new Vector2(-defaultSpeed, rig.velocity.y);
 		} //왼점
 		else if (moveState == (int)CharState.Cling)
@@ -111,7 +127,11 @@ public class PlayerController : MonoBehaviour
             rig.gravityScale = 0;
             rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
             rayHitR = Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer);
+            Debug.DrawRay(transform.position, Vector2.right, Color.red);
+            Debug.Log(rayHitR.transform);
             rayHitL = Physics2D.Raycast(transform.position, Vector2.left, rayLen, ignoreLayer);
+            Debug.DrawRay(transform.position, Vector2.left, Color.blue);
+            Debug.Log(rayHitL.transform);
 			WallJump();
 		} // 벽잡은 상태 코드들
 		else
@@ -292,9 +312,11 @@ public class PlayerController : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
             {
+                Debug.Log(rig.velocity.y);
                 if (!isJump && isGrounded && rig.velocity.y <= 0)
                 {
                     rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
+                    Debug.Log("점프");
                     isJump = true;
                     animator.SetBool("isJump", true);
                 }
@@ -315,12 +337,14 @@ public class PlayerController : MonoBehaviour
     {
         if(col.gameObject.layer == 8 && (Physics2D.Raycast(transform.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer)))
 		{
+            Debug.Log("부착");
             moveState = (int)CharState.Cling;
             rig.velocity = Vector2.zero;
             isJump = false;
 		}
-        else if (col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable"))
+        else if ((col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable")) && rig.velocity.y <= 0)
         {
+            Debug.Log("착지");
             isJump = false;
             moveState = (int)CharState.Normal;
             rig.gravityScale = 1;
@@ -331,13 +355,6 @@ public class PlayerController : MonoBehaviour
         if (sPressed && spacePressed )
         {
             StartCoroutine(CollisionOn());
-        }
-    }
-	private void OnCollisionExit2D(Collision2D collision)
-	{
-        if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Fallable"))
-        {
-            isJump = true;
         }
     }
 }
