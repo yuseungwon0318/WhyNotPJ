@@ -19,9 +19,9 @@ MonoBehaviour:
     width: 1536
     height: 780.8
   m_ShowMode: 4
-  m_Title: Debug
+  m_Title: Project
   m_RootView: {fileID: 2}
-  m_MinSize: {x: 875, y: 471}
+  m_MinSize: {x: 875, y: 371}
   m_MaxSize: {x: 10000, y: 10000}
   m_Maximized: 1
 --- !u!114 &2
@@ -121,10 +121,10 @@ MonoBehaviour:
     y: 30
     width: 1536
     height: 731
-  m_MinSize: {x: 908, y: 421}
+  m_MinSize: {x: 907, y: 321}
   m_MaxSize: {x: 22003, y: 10021}
   vertical: 0
-  controlID: 116
+  controlID: 39
 --- !u!114 &6
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -146,10 +146,10 @@ MonoBehaviour:
     y: 0
     width: 707
     height: 731
-  m_MinSize: {x: 201, y: 421}
+  m_MinSize: {x: 200, y: 321}
   m_MaxSize: {x: 4001, y: 8021}
   vertical: 1
-  controlID: 91
+  controlID: 2418
 --- !u!114 &7
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -160,7 +160,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 1
   m_Script: {fileID: 12006, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: SceneView
+  m_Name: AnimatorControllerTool
   m_EditorClassIdentifier: 
   m_Children: []
   m_Position:
@@ -169,15 +169,15 @@ MonoBehaviour:
     y: 0
     width: 707
     height: 370
-  m_MinSize: {x: 200, y: 200}
-  m_MaxSize: {x: 4000, y: 4000}
-  m_ActualView: {fileID: 13}
+  m_MinSize: {x: 101, y: 121}
+  m_MaxSize: {x: 4001, y: 4021}
+  m_ActualView: {fileID: 15}
   m_Panes:
   - {fileID: 13}
   - {fileID: 14}
   - {fileID: 15}
-  m_Selected: 0
-  m_LastSelected: 2
+  m_Selected: 2
+  m_LastSelected: 0
 --- !u!114 &8
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -407,9 +407,9 @@ MonoBehaviour:
   m_PlayAudio: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: -4.3205996, y: 13.445548, z: -0.9974936}
+    m_Target: {x: -10.400284, y: -0.16684948, z: -1.2375424}
     speed: 2
-    m_Value: {x: -4.3205996, y: 13.445548, z: -0.9974936}
+    m_Value: {x: -10.400284, y: -0.16684948, z: -1.2375424}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -460,9 +460,9 @@ MonoBehaviour:
     speed: 2
     m_Value: {x: 0, y: 0, z: 0, w: 1}
   m_Size:
-    m_Target: 1.724819
+    m_Target: 0.9014526
     speed: 2
-    m_Value: 1.724819
+    m_Value: 0.9014526
   m_Ortho:
     m_Target: 1
     speed: 2
@@ -544,14 +544,14 @@ MonoBehaviour:
     m_KeySerializationHelper:
     - {fileID: -6785898676462765776, guid: 22dca8a22406f414dade4f091eb51670, type: 2}
     m_ValueSerializationHelper:
-    - e00: 0.89465135
+    - e00: 0.9862424
       e01: 0
       e02: 0
-      e03: -360.7466
+      e03: 9.862473
       e10: 0
-      e11: 0.89465135
+      e11: 0.9862424
       e12: 0
-      e13: 178.93027
+      e13: 197.24847
       e20: 0
       e21: 0
       e22: 1
@@ -606,18 +606,18 @@ MonoBehaviour:
       scrollPos: {x: 0, y: 0}
       m_SelectedIDs: 1a100000
       m_LastClickedID: 0
-      m_ExpandedIDs: 64fbffffca420000da42000010430000284300005e430000
+      m_ExpandedIDs: 64fbffff18430000
       m_RenameOverlay:
         m_UserAcceptedRename: 0
-        m_Name: Grid
-        m_OriginalName: Grid
+        m_Name: Player
+        m_OriginalName: Player
         m_EditFieldRect:
           serializedVersion: 2
           x: 0
           y: 0
           width: 0
           height: 0
-        m_UserData: 17192
+        m_UserData: 17176
         m_IsWaitingForDelay: 0
         m_IsRenaming: 0
         m_OriginalEventType: 0
@@ -683,7 +683,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: e8420000
     m_LastClickedID: 17128
-    m_ExpandedIDs: 00000000f8430000fa440000fc440000fe4400000045000002450000044500000645000008450000
+    m_ExpandedIDs: 00000000f8430000fa440000fc440000fe44000000450000024500000445000006450000084500000a450000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -711,7 +711,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: ffffffff00000000f8430000fa440000fc440000fe44000000450000024500000445000006450000084500003a450000
+    m_ExpandedIDs: ffffffff00000000f8430000fa440000fc440000fe44000000450000024500000445000006450000084500000a450000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: PlayerController
@@ -782,7 +782,7 @@ MonoBehaviour:
   m_MinSize: {x: 275, y: 50}
   m_MaxSize: {x: 4000, y: 4000}
   m_TitleContent:
-    m_Text: Debug
+    m_Text: Inspector
     m_Image: {fileID: -440750813802333266, guid: 0000000000000000d000000000000000, type: 0}
     m_Tooltip: 
   m_Pos:
