@@ -47,6 +47,8 @@ public class PlayerController : MonoBehaviour
     [Tooltip("대시 지속시간을 나타냄")]
     public float defaultTime;
     public float jumpPower;
+    public GameObject parSpawner;
+    public Transform player;
     #endregion
     #region private 컴포넌트
     Rigidbody2D rig;
@@ -93,6 +95,8 @@ public class PlayerController : MonoBehaviour
             animator.ResetTrigger("Left_run");
             animator.ResetTrigger("Right_idle");
             animator.ResetTrigger("Left_idle");
+
+            parSpawner.transform.position = new Vector3(player.position.x + 1, player.position.y, player.position.z);
         }
 
         if (hor < 0)
@@ -101,6 +105,8 @@ public class PlayerController : MonoBehaviour
             animator.ResetTrigger("Right_run");
             animator.ResetTrigger("Right_idle");
             animator.ResetTrigger("Left_idle");
+            
+            parSpawner.transform.position = new Vector3(player.position.x - 1, player.position.y, player.position.z);
         }
         
         if (hor == 0)
@@ -126,11 +132,11 @@ public class PlayerController : MonoBehaviour
 
         v = new Vector2(hor * defaultSpeed, rig.velocity.y);
         rig.velocity = v;
-		if (Input.GetKeyDown(KeyCode.S))
+        if (Input.GetKeyDown(KeyCode.S) || Input.GetMouseButtonDown(0))
 		{
             rig.velocity +=Vector2.down * 0.001f;
 		}
-        
+
         DetectDash();
         Jump();
     }
