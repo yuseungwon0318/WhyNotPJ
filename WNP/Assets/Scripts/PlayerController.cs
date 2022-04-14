@@ -4,10 +4,9 @@ using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
-/// 애니메이터.
-/// 간략화하긴 했는데 점프가 어색하다. 스페이스바를 누르면 체크를 진행 & 바닥에 닿으면 탈출
-/// 다 괜찮은데 정점에 도달했을때 2번그림이 나와야함.
-/// 정점 체크가 어렵다.
+/// 점프중 대시 모션이 안뜸. 애니메이터 문제인데, 조건이 두 가지 모두 충족되어서
+/// 둘중 하나만 나오는 상황임.  해결하려면 우선순위를 부여하거나 추가적인 조건을 넣어야 하는데,
+/// 전자는 되는지 모르겠고 후자는 생각할 시간이 필요함.
 /// 
 ///
 /// 
@@ -42,6 +41,11 @@ using UnityEngine;
 /// P9*계단에서 점프후 애니메이션이 낙하중으로 남아있음.
 /// 세로방향으로 속도가 더해지는것 때문에 그런듯.
 /// 
+/// P10*애니메이터.
+/// 간략화하긴 했는데 점프가 어색하다. 스페이스바를 누르면 체크를 진행 & 바닥에 닿으면 탈출
+/// 다 괜찮은데 정점에 도달했을때 2번그림이 나와야함.
+/// 정점 체크가 어렵다.
+/// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
@@ -52,8 +56,8 @@ using UnityEngine;
 /// S7*P3해결중 해결됨.
 /// S8*플레이어 발이 작은 원형이기에 땅에 닿은지 판정이 실패했음. 발을 캡슐로 넓혀서 해결.
 /// S9*바닥에 닿는것을 애니메이션 조건으로 삼음.
+/// S10*점프모션을 타협함.
 /// </해결됨>
-///  >>>>>>>>이동 관련 코드의 전면 수정이 필요해 보임. 또는 그외의 해결 방법을 모색해야 할 수도 있음,
 /// 
 /// </summary>
 public class PlayerController : MonoBehaviour
@@ -70,6 +74,7 @@ public class PlayerController : MonoBehaviour
     #region private 컴포넌트
     Rigidbody2D rig;
     Animator animator;
+    ParticleSystemRenderer afterImage;
     #endregion
     #region 이동&대시관련 변수들
     Vector2 v;
@@ -116,6 +121,8 @@ public class PlayerController : MonoBehaviour
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        afterImage = GetComponentInChildren<ParticleSystemRenderer>();
+        afterImage.enabled = false;
     }
 
     void Update()
@@ -216,7 +223,9 @@ public class PlayerController : MonoBehaviour
 	{
 		if (ADash)
 		{
-            
+            //afterImage.enabled = true;
+            StartCoroutine(AfterCtrl());
+            afterImage.flip = new Vector3(0,0,0);
             animator.SetBool("isDash", true);
             DDash = false;
             rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
@@ -228,19 +237,20 @@ public class PlayerController : MonoBehaviour
                 ADash = false;
                 resetD = true;
                 declinedDashSpeed = 1;
+                //afterImage.enabled = false;
             }
         }
         else if (DDash)
 		{
-            
-            
+            StartCoroutine(AfterCtrl());
+            afterImage.flip = new Vector3(180, 0, 0);
             ADash = false;
             rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
             dashTime -= Time.deltaTime;
             declinedDashSpeed /= 1.1f;
             if (dashTime <= 0)
             {
-                
+                animator.SetBool("isDash", false);
                 DDash = false;
                 resetA = true;
                 declinedDashSpeed = 1;
@@ -346,6 +356,12 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+    IEnumerator AfterCtrl()
+	{
+        afterImage.enabled = true;
+        yield return new WaitForSeconds(defaultTime * 1.17f);
+        afterImage.enabled = false;
+	}
     IEnumerator DoubleKey()
 	{
         animator.SetBool("isDash", true);
