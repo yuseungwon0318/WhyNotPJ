@@ -4,8 +4,10 @@ using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
-/// 
-/// ㅘ! 지금은 없다.
+/// 애니메이터.
+/// 간략화하긴 했는데 점프가 어색하다. 스페이스바를 누르면 체크를 진행 & 바닥에 닿으면 탈출
+/// 다 괜찮은데 정점에 도달했을때 2번그림이 나와야함.
+/// 정점 체크가 어렵다.
 /// 
 ///
 /// 
@@ -69,9 +71,10 @@ public class PlayerController : MonoBehaviour
     Rigidbody2D rig;
     Animator animator;
     #endregion
-    #region 대시관련 변수들
+    #region 이동&대시관련 변수들
     Vector2 v;
-	float keyTime;
+    float hor;
+    float keyTime;
     bool ADash = false;
     bool DDash = false;
     float dashTime;
@@ -97,11 +100,9 @@ public class PlayerController : MonoBehaviour
         None = -1,
         Normal,
         Cling,
-        WallJumpR,
-        WallJumpL,
-
+        WallJumpR, //우상향 점프
+        WallJumpL, //좌상향 점프
 	}
-
     #endregion
     #region raycast 등
     RaycastHit2D rayHitR;
@@ -115,70 +116,76 @@ public class PlayerController : MonoBehaviour
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        animator.SetBool("LookDir", true);
     }
 
     void Update()
     {
-        if(moveState == (int)CharState.WallJumpR)
-		{
-            Debug.Log("오른쪽으로 점프");
-            rig.velocity = new Vector2(defaultSpeed, rig.velocity.y);
-		} //오른점
-        else if( moveState == (int)CharState.WallJumpL)
-		{
-            Debug.Log("왼점");
-            rig.velocity = new Vector2(-defaultSpeed, rig.velocity.y);
-		} //왼점
-		else if (moveState == (int)CharState.Cling)
+        animator.SetInteger("moveState", moveState);
+		if (moveState == (int)CharState.Cling)
 		{
             
             rig.gravityScale = 0;
             rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
             rayHitR = Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer);
-            Debug.DrawRay(transform.position, Vector2.right, Color.red);
-            Debug.Log(rayHitR.transform);
             rayHitL = Physics2D.Raycast(transform.position, Vector2.left, rayLen, ignoreLayer);
-            Debug.DrawRay(transform.position, Vector2.left, Color.blue);
-            Debug.Log(rayHitL.transform);
+            if(!rayHitL && !rayHitR)
+			{
+                rig.gravityScale = 1;
+                moveState = (int)CharState.Normal;
+			}
 			WallJump();
 		} // 벽잡은 상태 코드들
 		else
 		{
-            animator.SetBool("isGrounded", isGrounded);
-            animator.SetBool("isJump", false);
-            animator.SetFloat("X", rig.velocity.x);
-            animator.SetFloat("Y", rig.velocity.y);
-            float hor = Input.GetAxis("Horizontal");
-            if (hor > 0)
+            if (moveState == (int)CharState.WallJumpR)
             {
-                animator.SetBool("LookDir", false);
-                animator.SetBool("isIdle", false);
-                animator.SetBool("isRun", true);
+                transform.eulerAngles = new Vector3(0, 180, 0);
+                hor = Input.GetAxis("Horizontal");
+                rig.velocity = new Vector2(defaultSpeed + (hor * 2 ), rig.velocity.y);
             }
-
-            if (hor < 0)
+            else if (moveState == (int)CharState.WallJumpL)
             {
-                animator.SetBool("LookDir", true);
-                animator.SetBool("isIdle", false);
-                animator.SetBool("isRun", true);
+                transform.eulerAngles = new Vector3(0, 0, 0);
+                hor = Input.GetAxis("Horizontal");
+                rig.velocity = new Vector2(-defaultSpeed + (hor * 2), rig.velocity.y);
             }
+            if(moveState == (int)CharState.Normal)
+			{
+                animator.SetBool("isGrounded", isGrounded);
+                animator.SetBool("spacePress", spacePressed);
+                animator.SetFloat("Y", rig.velocity.y);
+                hor = Input.GetAxis("Horizontal");
+                if (hor > 0)
+                {
+                    transform.eulerAngles = new Vector3(0, 180, 0);
+                    animator.SetBool("isIdle", false);
+                    animator.SetBool("isRun", true);
+                }
 
-            if (Mathf.Approximately(rig.velocity.x, 0))
-            {
-                animator.SetBool("isIdle", true);
-                animator.SetBool("isRun", false);
+                if (hor < 0)
+                {
+                    transform.eulerAngles = new Vector3(0, 0, 0);
+                    animator.SetBool("isIdle", false);
+                    animator.SetBool("isRun", true);
+                }
+
+                if (Mathf.Approximately(rig.velocity.x, 0))
+                {
+                    animator.SetBool("isIdle", true);
+                    animator.SetBool("isRun", false);
+                }
+
+                v = new Vector2(hor * defaultSpeed, rig.velocity.y);
+                rig.velocity = v;
+                if (Input.GetKeyDown(KeyCode.S))
+                {
+                    rig.velocity += Vector2.down * 0.001f;
+                }
+
+                DetectDash();
+                Jump();
             }
-
-            v = new Vector2(hor * defaultSpeed, rig.velocity.y);
-            rig.velocity = v;
-            if (Input.GetKeyDown(KeyCode.S))
-            {
-                rig.velocity += Vector2.down * 0.001f;
-            }
-
-            DetectDash();
-            Jump();
+            
         } // 일반 상태 코드들
         
     }
@@ -201,6 +208,7 @@ public class PlayerController : MonoBehaviour
         {
             spacePressed = false;
         }
+
         Dash();
     }
 
@@ -208,14 +216,15 @@ public class PlayerController : MonoBehaviour
 	{
 		if (ADash)
 		{
+            
+            animator.SetBool("isDash", true);
             DDash = false;
             rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
-            
-
             dashTime -= Time.deltaTime;
             declinedDashSpeed /= 1.1f;
             if (dashTime <= 0)
             {
+                animator.SetBool("isDash", false);
                 ADash = false;
                 resetD = true;
                 declinedDashSpeed = 1;
@@ -223,13 +232,15 @@ public class PlayerController : MonoBehaviour
         }
         else if (DDash)
 		{
+            
+            
             ADash = false;
             rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
-            
             dashTime -= Time.deltaTime;
             declinedDashSpeed /= 1.1f;
             if (dashTime <= 0)
             {
+                
                 DDash = false;
                 resetA = true;
                 declinedDashSpeed = 1;
@@ -248,6 +259,7 @@ public class PlayerController : MonoBehaviour
             if (Time.time < keyTime + DashGap)
             {
                 ADash = true;
+                StartCoroutine(DoubleKey());
                 dashTime = defaultTime;
             }
             resetA = true;
@@ -268,6 +280,7 @@ public class PlayerController : MonoBehaviour
             
             if (Time.time < keyTime + DashGap)
 			{
+                StartCoroutine(DoubleKey());
                 DDash = true;
                 dashTime = defaultTime;
             }
@@ -285,6 +298,7 @@ public class PlayerController : MonoBehaviour
 		}
 		if (resetA)
 		{
+            
             firstKeyPressedA = false;
             resetA = false;
         }
@@ -328,12 +342,19 @@ public class PlayerController : MonoBehaviour
                     rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
                     Debug.Log("점프");
                     isJump = true;
-                    animator.SetBool("isJump", true);
                 }
             }
         }
     }
-
+    IEnumerator DoubleKey()
+	{
+        animator.SetBool("isDash", true);
+        animator.SetBool("doubleKeyPress", true);
+        yield return null;
+        animator.SetBool("doubleKeyPress", false);
+        yield return new WaitForSeconds(defaultTime);
+        animator.SetBool("isDash", false);
+    }
     IEnumerator CollisionOn()
 	{
         fallchanged = true;
@@ -347,14 +368,12 @@ public class PlayerController : MonoBehaviour
     {
         if(col.gameObject.layer == 8 && (Physics2D.Raycast(transform.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer)))
 		{
-            Debug.Log("부착");
             moveState = (int)CharState.Cling;
             rig.velocity = Vector2.zero;
             isJump = false;
 		}
         else if ((col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable")) && rig.velocity.y <= 0)
         {
-            Debug.Log("착지");
             isJump = false;
             moveState = (int)CharState.Normal;
             rig.gravityScale = 1;
