@@ -4141,7 +4141,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DashGap: 0.3
   speed: 6
-  dashPower: 26
+  dashPower: 24
   defaultTime: 0.25
   jumpPower: 12
   slipRate: 40

@@ -8,6 +8,11 @@ using UnityEngine;
 /// 둘중 하나만 나오는 상황임.  해결하려면 우선순위를 부여하거나 추가적인 조건을 넣어야 하는데,
 /// 전자는 되는지 모르겠고 후자는 생각할 시간이 필요함.
 /// 
+/// 벽점프 후 걸림.
+/// 레이캐스트 위치가 중심으로 설정되어있어서 그렇다.
+/// 발위치로 해주면 납득가는 판정이 날듯.
+/// 
+/// 
 ///
 /// 
 /// 
@@ -89,6 +94,7 @@ public class PlayerController : MonoBehaviour
     bool firstKeyPressedD = false;
     bool resetA = false;
     bool resetD = false;
+    Coroutine prevCrout = null;
 	#endregion
 	#region 점프/낙하관련 변수들
 	bool isJump = false;
@@ -130,7 +136,8 @@ public class PlayerController : MonoBehaviour
         animator.SetInteger("moveState", moveState);
 		if (moveState == (int)CharState.Cling)
 		{
-            
+            animator.SetBool("isRun", false);
+            animator.SetBool("isIdle", false);
             rig.gravityScale = 0;
             rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
             rayHitR = Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer);
@@ -221,41 +228,40 @@ public class PlayerController : MonoBehaviour
 
     void Dash()
 	{
-		if (ADash)
-		{
-            //afterImage.enabled = true;
-            StartCoroutine(AfterCtrl());
-            afterImage.flip = new Vector3(0,0,0);
-            animator.SetBool("isDash", true);
-            DDash = false;
-            rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
-            dashTime -= Time.deltaTime;
-            declinedDashSpeed /= 1.1f;
-            if (dashTime <= 0)
+            if (ADash)
             {
-                animator.SetBool("isDash", false);
-                ADash = false;
-                resetD = true;
-                declinedDashSpeed = 1;
-                //afterImage.enabled = false;
-            }
-        }
-        else if (DDash)
-		{
-            StartCoroutine(AfterCtrl());
-            afterImage.flip = new Vector3(180, 0, 0);
-            ADash = false;
-            rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
-            dashTime -= Time.deltaTime;
-            declinedDashSpeed /= 1.1f;
-            if (dashTime <= 0)
-            {
-                animator.SetBool("isDash", false);
+                StartCoroutine(AfterCtrl());
+                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
                 DDash = false;
-                resetA = true;
-                declinedDashSpeed = 1;
+                rig.AddForce(Vector2.left * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
+                dashTime -= Time.deltaTime;
+                declinedDashSpeed /= 1.1f;
+                if (dashTime <= 0)
+                {
+                    ADash = false;
+                    resetD = true;
+                    declinedDashSpeed = 1;
+                    moveState = (int)CharState.Normal;
+                }
             }
-        }
+            else if (DDash)
+            {
+                StartCoroutine(AfterCtrl());
+                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+                ADash = false;
+                rig.AddForce(Vector2.right * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
+                dashTime -= Time.deltaTime;
+                declinedDashSpeed /= 1.1f;
+                if (dashTime <= 0)
+                {
+                    DDash = false;
+                    resetA = true;
+                    declinedDashSpeed = 1;
+                    moveState = (int)CharState.Normal;
+                }
+            }
+        
+		
         
         
 	}
@@ -268,8 +274,8 @@ public class PlayerController : MonoBehaviour
 			
             if (Time.time < keyTime + DashGap)
             {
-                ADash = true;
                 StartCoroutine(DoubleKey());
+                ADash = true;
                 dashTime = defaultTime;
             }
             resetA = true;
@@ -278,11 +284,8 @@ public class PlayerController : MonoBehaviour
         {
             firstKeyPressedA = true;
             keyTime = Time.time;
-        }
-		if (Input.GetKeyDown(KeyCode.A))
-		{
             resetD = true;
-		}
+        }
         
 
         if (Input.GetKeyDown(KeyCode.D) && firstKeyPressedD)
@@ -301,11 +304,8 @@ public class PlayerController : MonoBehaviour
         {
             firstKeyPressedD = true;
             keyTime = Time.time;
-        }
-		if (Input.GetKeyDown(KeyCode.D))
-		{
             resetA = true;
-		}
+        }
 		if (resetA)
 		{
             
@@ -335,6 +335,8 @@ public class PlayerController : MonoBehaviour
             if(rayHitL.transform != null || rayHitR.transform != null)
 			{
                 rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
+                resetA = true;
+                resetD = true;
             }
             
             
@@ -364,12 +366,15 @@ public class PlayerController : MonoBehaviour
 	}
     IEnumerator DoubleKey()
 	{
-        animator.SetBool("isDash", true);
+        Debug.Log("코루틴 활성화" + Time.time);
         animator.SetBool("doubleKeyPress", true);
-        yield return null;
+        animator.SetBool("isDash", true);
+        yield return new WaitForSeconds(0.15f);
+        Debug.Log("디텍터 종료" + Time.time);
         animator.SetBool("doubleKeyPress", false);
         yield return new WaitForSeconds(defaultTime);
         animator.SetBool("isDash", false);
+        Debug.Log("대시 종료" + Time.time);
     }
     IEnumerator CollisionOn()
 	{
