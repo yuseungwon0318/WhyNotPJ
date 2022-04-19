@@ -1,9 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-/// <summary>
-/// 아무 조작이 없을 때 공격 시 마우스 입력 안 됨
-/// </summary>
+
 public class PlayerAttack : MonoBehaviour
 {
     public float playerDamage = 0.2f;
@@ -14,6 +12,7 @@ public class PlayerAttack : MonoBehaviour
         {
             Destroy(collision.gameObject);
         }
+
         Destroy(gameObject);
     }
 }
