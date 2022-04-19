@@ -4,13 +4,9 @@ using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
-/// 점프중 대시 모션이 안뜸. 애니메이터 문제인데, 조건이 두 가지 모두 충족되어서
-/// 둘중 하나만 나오는 상황임.  해결하려면 우선순위를 부여하거나 추가적인 조건을 넣어야 하는데,
-/// 전자는 되는지 모르겠고 후자는 생각할 시간이 필요함.
-/// 
-/// 벽점프 후 걸림.
-/// 레이캐스트 위치가 중심으로 설정되어있어서 그렇다.
-/// 발위치로 해주면 납득가는 판정이 날듯.
+/// 벽에 지면과 평행한 대시로 붙으면 어색한 상황이 연출됨.
+/// 점프시 수직으로 날아오르고 대시가 가능함.
+/// movestate가 0임.
 /// 
 /// 
 ///
@@ -51,23 +47,35 @@ using UnityEngine;
 /// 다 괜찮은데 정점에 도달했을때 2번그림이 나와야함.
 /// 정점 체크가 어렵다.
 /// 
+/// P11*벽점프 후 걸림.
+/// 레이캐스트 위치가 중심으로 설정되어있어서 그렇다.
+/// 발위치로 해주면 납득가는 판정이 날듯.
+/// 
+/// P12*
+/// 점프중 대시 모션이 안뜸. 애니메이터 문제인데, 조건이 두 가지 모두 충족되어서
+/// 둘중 하나만 나오는 상황임.  해결하려면 우선순위를 부여하거나 추가적인 조건을 넣어야 하는데,
+/// 전자는 되는지 모르겠고 후자는 생각할 시간이 필요함.
+/// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
 /// S3*자를 때 검은 부분이 조금 같이 잘림. 크기를 2픽셀정도 줄여서 해결.
 /// S4*위 방향으로 힘이 가해지면 착지판정을 받지 않도록 함.
 /// S5*계단과 바닥의 collider를 조정함. 계단을 더 짧게, 바닥을 더 얕게 하면 됨.
-/// S6*현실과 타협함.
+/// S6*타협함.
 /// S7*P3해결중 해결됨.
 /// S8*플레이어 발이 작은 원형이기에 땅에 닿은지 판정이 실패했음. 발을 캡슐로 넓혀서 해결.
 /// S9*바닥에 닿는것을 애니메이션 조건으로 삼음.
 /// S10*점프모션을 타협함.
+/// S11*바닥에 닿는 판정 메커니즘을 변경. 전보다 조금 빠르면서, 넓은 판정을 사용할 수 있어서 해결.
+/// S12*애니메이터에 has exit time 의 문제였음
 /// </해결됨>
 /// 
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
 	#region public 변수
+    public Transform Feet;
 	public float DashGap;
     public float speed;
     public float dashPower;
@@ -94,7 +102,6 @@ public class PlayerController : MonoBehaviour
     bool firstKeyPressedD = false;
     bool resetA = false;
     bool resetD = false;
-    Coroutine prevCrout = null;
 	#endregion
 	#region 점프/낙하관련 변수들
 	bool isJump = false;
@@ -129,7 +136,7 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
         afterImage = GetComponentInChildren<ParticleSystemRenderer>();
         afterImage.enabled = false;
-    }
+    } //각종 초기화
 
     void Update()
     {
@@ -140,8 +147,8 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("isIdle", false);
             rig.gravityScale = 0;
             rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
-            rayHitR = Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer);
-            rayHitL = Physics2D.Raycast(transform.position, Vector2.left, rayLen, ignoreLayer);
+            rayHitR = Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer);
+            rayHitL = Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer);
             if(!rayHitL && !rayHitR)
 			{
                 rig.gravityScale = 1;
@@ -274,6 +281,7 @@ public class PlayerController : MonoBehaviour
 			
             if (Time.time < keyTime + DashGap)
             {
+                
                 StartCoroutine(DoubleKey());
                 ADash = true;
                 dashTime = defaultTime;
@@ -348,11 +356,10 @@ public class PlayerController : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space))
             {
-                Debug.Log(rig.velocity.y);
+
                 if (!isJump && isGrounded && rig.velocity.y <= 0)
                 {
                     rig.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
-                    Debug.Log("점프");
                     isJump = true;
                 }
             }
@@ -366,15 +373,12 @@ public class PlayerController : MonoBehaviour
 	}
     IEnumerator DoubleKey()
 	{
-        Debug.Log("코루틴 활성화" + Time.time);
         animator.SetBool("doubleKeyPress", true);
         animator.SetBool("isDash", true);
-        yield return new WaitForSeconds(0.15f);
-        Debug.Log("디텍터 종료" + Time.time);
+        yield return null;
         animator.SetBool("doubleKeyPress", false);
         yield return new WaitForSeconds(defaultTime);
         animator.SetBool("isDash", false);
-        Debug.Log("대시 종료" + Time.time);
     }
     IEnumerator CollisionOn()
 	{
@@ -384,10 +388,11 @@ public class PlayerController : MonoBehaviour
         isFall = false;
         yield return null; // 1프레임 대기
         fallchanged = false;
-    }
+    } //낙하
+
     void OnCollisionEnter2D(Collision2D col)
     {
-        if(col.gameObject.layer == 8 && (Physics2D.Raycast(transform.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(transform.position, Vector2.right, rayLen, ignoreLayer)))
+        if(col.gameObject.layer == 8 && (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
 		{
             moveState = (int)CharState.Cling;
             rig.velocity = Vector2.zero;
