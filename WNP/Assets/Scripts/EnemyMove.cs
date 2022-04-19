@@ -5,27 +5,51 @@ using UnityEngine;
 public class EnemyMove : MonoBehaviour
 {
     Vector3 dir;
-    GameObject enemyDetectRange;
+    Animator animator;
+    SpriteRenderer spriteRenderer;
+    GameObject enemyDetectRangeLeft;
+    GameObject enemyDetectRangeRight;
     GameObject target;
-    public GameObject enemyDetectRangePut;
+    public GameObject enemyDetectRangeLeftPut;
+    public GameObject enemyDetectRangeRightPut;
     public float speed = 2;
 
     void Start()
     {
         target = GameObject.Find("Player");
-        enemyDetectRange = Instantiate(enemyDetectRangePut);
+        animator = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        enemyDetectRangeLeft = Instantiate(enemyDetectRangeLeftPut);
+        enemyDetectRangeRight = Instantiate(enemyDetectRangeRightPut);
     }
 
     void Update()
     {
         dir = target.transform.position - transform.position;
-        enemyDetectRange.transform.position = transform.position;
+        enemyDetectRangeLeft.transform.position = transform.position;
+        enemyDetectRangeRight.transform.position = transform.position;
 
         dir.Normalize();
 
-        if(enemyDetectRange.GetComponent<EnemyDetectRange>().detected == true)
+        if (enemyDetectRangeLeft.GetComponent<EnemyDetectRange>().detected == true)
         {
+            spriteRenderer.flipX = false;
+
             transform.position += dir * speed * Time.deltaTime;
+
+            animator.SetBool("Monster_larva_move", true);
+        }
+        else if (enemyDetectRangeRight.GetComponent<EnemyDetectRange>().detected == true)
+        {
+            spriteRenderer.flipX = true;
+
+            transform.position += dir * speed * Time.deltaTime;
+
+            animator.SetBool("Monster_larva_move", true);
+        }
+        else
+        {
+            animator.SetBool("Monster_larva_move", false);
         }
     }
 }
