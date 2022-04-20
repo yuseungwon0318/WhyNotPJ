@@ -4,10 +4,7 @@ using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
-/// 대시에 추가적인 조건을 넣어야 할 듯?
-/// 스태미나 등.
-/// 대시를 연속해서 하면 속도가 너무 빠름.
-/// 대시키를 연속해서 누르면 잔상이 계속 활성화됨.
+/// 
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -61,6 +58,11 @@ using UnityEngine;
 /// 점프시 수직으로 날아오르고 대시가 가능함.
 /// movestate가 0임.
 /// 
+/// P16*대시에 추가적인 조건을 넣어야 할 듯?
+/// 스태미나 등.
+/// 대시를 연속해서 하면 속도가 너무 빠름.
+/// 대시키를 연속해서 누르면 잔상이 계속 활성화됨.
+/// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
@@ -77,6 +79,7 @@ using UnityEngine;
 /// S13*미끄러운 충돌을 조금 더 넓힘.
 /// S14*Y축 방향으로 힘이 가해지면 착지판정을 안나오게 함. 추가로 P6도 해결.
 /// S15*대시 끝나면 상태를 일반으로 고쳐줘서 생긴 문제. 대시 종료시 상태판정을 한번 돌려서 해결.
+/// S16*더함.
 /// </해결됨>
 /// 
 /// </summary>
@@ -85,12 +88,16 @@ public class PlayerController : MonoBehaviour
 	#region public 변수
     public Transform Feet;
 	public float DashGap;
+    public int DashFull; //최대 대시 충전량
+    public float DashCooldown;
     public float speed;
     public float dashPower;
     [Tooltip("대시 지속시간을 나타냄")]
     public float defaultTime;
     public float jumpPower;
     public float slipRate;
+    
+
     public Rigidbody2D  rig;
     #endregion
     #region private 컴포넌트
@@ -98,6 +105,7 @@ public class PlayerController : MonoBehaviour
     ParticleSystemRenderer afterImage;
     #endregion
     #region 이동&대시관련 변수들
+    int DashCount; //현재 대시 갯수
     Vector2 v;
     float hor;
     float keyTime;
@@ -144,6 +152,8 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
         afterImage = GetComponentInChildren<ParticleSystemRenderer>();
         afterImage.enabled = false;
+        DashCount = 0;
+        StartCoroutine(DashCharge());
     } //각종 초기화
 
     void Update()
@@ -237,113 +247,123 @@ public class PlayerController : MonoBehaviour
         {
             spacePressed = false;
         }
-
+        
+		
         Dash();
     }
 
     void Dash()
 	{
-        if (ADash)
-        {
-            StartCoroutine(AfterCtrl());
-           afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
-           DDash = false;
-           rig.AddForce(Vector2.left * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
-           dashTime -= Time.deltaTime;
-           declinedDashSpeed /= 1.1f;
-           if (dashTime <= 0)
-           {
-               ADash = false;
-               resetD = true;
-               declinedDashSpeed = 1;
-               if(Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
-               {
-                   moveState = (int)CharState.Cling;
-               }
-			    else
-			    {
-                   moveState = (int)CharState.Normal;
-			    }
-               
-           }
-       }
-       else if (DDash)
-       {
-           StartCoroutine(AfterCtrl());
-           afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
-           ADash = false;
-           rig.AddForce(Vector2.right * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
-           dashTime -= Time.deltaTime;
-           declinedDashSpeed /= 1.1f;
-           if (dashTime <= 0)
-           {
-               DDash = false;
-               resetA = true;
-               declinedDashSpeed = 1;
-               if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
-               {
-                  moveState = (int)CharState.Cling;
-               }
-               else
-               {
-                   moveState = (int)CharState.Normal;
-               }
-           }
-       }
+         if (ADash)
+            {
+                
+                StartCoroutine(AfterCtrl());
+                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+                DDash = false;
+                rig.AddForce(Vector2.left * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
+                dashTime -= Time.deltaTime;
+                declinedDashSpeed /= 1.1f;
+                if (dashTime <= 0)
+                {
+                    DashCount -= 1;
+                    ADash = false;
+                    resetD = true;
+                    declinedDashSpeed = 1;
+                    if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+                    {
+                        moveState = (int)CharState.Cling;
+                    }
+                    else
+                    {
+                        moveState = (int)CharState.Normal;
+                    }
+
+                }
+            }
+            else if (DDash)
+            {
+                
+                StartCoroutine(AfterCtrl());
+                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+                ADash = false;
+                rig.AddForce(Vector2.right * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
+                dashTime -= Time.deltaTime;
+                declinedDashSpeed /= 1.1f;
+                if (dashTime <= 0)
+                {
+                    DashCount -= 1;
+                    DDash = false;
+                    resetA = true;
+                    declinedDashSpeed = 1;
+                    if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+                    {
+                        moveState = (int)CharState.Cling;
+                    }
+                    else
+                    {
+                        moveState = (int)CharState.Normal;
+                    }
+                }
+            
+        }
+        
 	}
 
     void DetectDash()
     {
-        
-        if (Input.GetKeyDown(KeyCode.A) && firstKeyPressedA)
-        {
-			
-            if (Time.time < keyTime + DashGap)
+        if(DashCount > 0)
+		{
+            if (Input.GetKeyDown(KeyCode.A) && firstKeyPressedA)
             {
-                
-                StartCoroutine(DoubleKey());
-                ADash = true;
-                dashTime = defaultTime;
+
+                if (Time.time < keyTime + DashGap)
+                {
+
+                    StartCoroutine(DoubleKey());
+                    ADash = true;
+                    dashTime = defaultTime;
+                }
+                resetA = true;
             }
-            resetA = true;
-        }
-        if (Input.GetKey(KeyCode.A) && !firstKeyPressedA)
-        {
-            firstKeyPressedA = true;
-            keyTime = Time.time;
-            resetD = true;
+            if (Input.GetKey(KeyCode.A) && !firstKeyPressedA)
+            {
+                firstKeyPressedA = true;
+                keyTime = Time.time;
+                resetD = true;
+            }
+
+
+            if (Input.GetKeyDown(KeyCode.D) && firstKeyPressedD)
+            {
+
+                if (Time.time < keyTime + DashGap)
+                {
+                    StartCoroutine(DoubleKey());
+                    DDash = true;
+                    dashTime = defaultTime;
+                }
+
+                resetD = true;
+            }
+            if (Input.GetKey(KeyCode.D) && !firstKeyPressedD)
+            {
+                firstKeyPressedD = true;
+                keyTime = Time.time;
+                resetA = true;
+            }
+            if (resetA)
+            {
+
+                firstKeyPressedA = false;
+                resetA = false;
+            }
+            if (resetD)
+            {
+                firstKeyPressedD = false;
+                resetD = false;
+            }
         }
         
-
-        if (Input.GetKeyDown(KeyCode.D) && firstKeyPressedD)
-        {
-            
-            if (Time.time < keyTime + DashGap)
-			{
-                StartCoroutine(DoubleKey());
-                DDash = true;
-                dashTime = defaultTime;
-            }
-
-            resetD = true;
-        }
-        if (Input.GetKey(KeyCode.D) && !firstKeyPressedD)
-        {
-            firstKeyPressedD = true;
-            keyTime = Time.time;
-            resetA = true;
-        }
-		if (resetA)
-		{
-            
-            firstKeyPressedA = false;
-            resetA = false;
-        }
-		if (resetD)
-		{
-            firstKeyPressedD = false;
-            resetD = false;
-		}
     }
 
     void WallJump()
@@ -369,6 +389,7 @@ public class PlayerController : MonoBehaviour
             
         }
 	}
+
     void Jump()
     {
         if (!sPressed)
@@ -384,6 +405,24 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+
+    IEnumerator DashCharge()
+	{
+        Debug.Log("코루틴 시작");
+		while(true)
+		{
+            yield return new WaitForSeconds(DashCount);
+            if (DashCount < DashFull)
+			{
+                
+                DashCount += 1;
+                Debug.Log("added");
+            }
+            
+            
+        }
+		
+	}
     IEnumerator AfterCtrl()
 	{
         afterImage.enabled = true;

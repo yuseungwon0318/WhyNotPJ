@@ -4141,6 +4141,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Feet: {fileID: 1489978252}
   DashGap: 0.3
+  DashFull: 2
+  DashCooldown: 0
   speed: 6
   dashPower: 24
   defaultTime: 0.25
