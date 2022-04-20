@@ -105,7 +105,7 @@ public class PlayerController : MonoBehaviour
     ParticleSystemRenderer afterImage;
     #endregion
     #region 이동&대시관련 변수들
-    int DashCount; //현재 대시 갯수
+    public int DashCount; //현재 대시 갯수 (UI에서 쓰기 위해 public임. 값 수정은 영향 없음.
     Vector2 v;
     float hor;
     float keyTime;
@@ -118,6 +118,7 @@ public class PlayerController : MonoBehaviour
     bool firstKeyPressedD = false;
     bool resetA = false;
     bool resetD = false;
+    int dCountChangedAmount = 0;
 	#endregion
 	#region 점프/낙하관련 변수들
 	bool isJump = false;
@@ -152,7 +153,7 @@ public class PlayerController : MonoBehaviour
         animator = GetComponent<Animator>();
         afterImage = GetComponentInChildren<ParticleSystemRenderer>();
         afterImage.enabled = false;
-        DashCount = 0;
+        DashCount = DashFull;
         StartCoroutine(DashCharge());
     } //각종 초기화
 
@@ -254,56 +255,53 @@ public class PlayerController : MonoBehaviour
 
     void Dash()
 	{
-         if (ADash)
+        if (ADash)
+		{
+           
+            StartCoroutine(AfterCtrl());
+            afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+            DDash = false;
+			 rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
+            dashTime -= Time.deltaTime;
+            declinedDashSpeed /= 1.1f;
+            if (dashTime <= 0)
             {
-                
-                StartCoroutine(AfterCtrl());
-                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
-                DDash = false;
-                rig.AddForce(Vector2.left * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
-                dashTime -= Time.deltaTime;
-                declinedDashSpeed /= 1.1f;
-                if (dashTime <= 0)
+                ADash = false;
+                resetD = true;
+                declinedDashSpeed = 1;
+                if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
                 {
-                    DashCount -= 1;
-                    ADash = false;
-                    resetD = true;
-                    declinedDashSpeed = 1;
-                    if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
-                    {
-                        moveState = (int)CharState.Cling;
-                    }
-                    else
-                    {
-                        moveState = (int)CharState.Normal;
-                    }
-
+                    moveState = (int)CharState.Cling;
+                }
+                else
+                {
+                    moveState = (int)CharState.Normal;
+                }
+                
+            }
+        }
+        else if (DDash)
+        {
+            StartCoroutine(AfterCtrl());
+            afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+            ADash = false;
+            rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
+            dashTime -= Time.deltaTime;
+            declinedDashSpeed /= 1.1f;
+            if (dashTime <= 0)
+            {
+               DDash = false;
+                resetA = true;
+                declinedDashSpeed = 1;
+                if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+                {
+                    moveState = (int)CharState.Cling;
+                }
+                else
+                {
+                    moveState = (int)CharState.Normal;
                 }
             }
-            else if (DDash)
-            {
-                
-                StartCoroutine(AfterCtrl());
-                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
-                ADash = false;
-                rig.AddForce(Vector2.right * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
-                dashTime -= Time.deltaTime;
-                declinedDashSpeed /= 1.1f;
-                if (dashTime <= 0)
-                {
-                    DashCount -= 1;
-                    DDash = false;
-                    resetA = true;
-                    declinedDashSpeed = 1;
-                    if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
-                    {
-                        moveState = (int)CharState.Cling;
-                    }
-                    else
-                    {
-                        moveState = (int)CharState.Normal;
-                    }
-                }
             
         }
         
@@ -311,14 +309,15 @@ public class PlayerController : MonoBehaviour
 
     void DetectDash()
     {
-        if(DashCount > 0)
+        if(DashCount > 0 && !ADash && !DDash)
 		{
             if (Input.GetKeyDown(KeyCode.A) && firstKeyPressedA)
             {
-
+                
                 if (Time.time < keyTime + DashGap)
                 {
-
+                    DashCount -= 1;
+                    dCountChangedAmount += 1;
                     StartCoroutine(DoubleKey());
                     ADash = true;
                     dashTime = defaultTime;
@@ -338,6 +337,9 @@ public class PlayerController : MonoBehaviour
 
                 if (Time.time < keyTime + DashGap)
                 {
+                    DashCount -= 1;
+                    dCountChangedAmount += 1;
+                    keyTime = 0;
                     StartCoroutine(DoubleKey());
                     DDash = true;
                     dashTime = defaultTime;
@@ -353,12 +355,12 @@ public class PlayerController : MonoBehaviour
             }
             if (resetA)
             {
-
                 firstKeyPressedA = false;
                 resetA = false;
             }
             if (resetD)
             {
+                
                 firstKeyPressedD = false;
                 resetD = false;
             }
@@ -408,27 +410,26 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator DashCharge()
 	{
-        Debug.Log("코루틴 시작");
-		while(true)
+		while (true)
 		{
-            yield return new WaitForSeconds(DashCount);
-            if (DashCount < DashFull)
-			{
-                
+            yield return null;
+            if (DashCount < DashFull && dCountChangedAmount > 0)
+            {
+                yield return new WaitForSeconds(DashCount);
                 DashCount += 1;
-                Debug.Log("added");
+                --dCountChangedAmount;
             }
-            
-            
         }
-		
+        
 	}
+
     IEnumerator AfterCtrl()
 	{
         afterImage.enabled = true;
         yield return new WaitForSeconds(defaultTime * 1.17f);
         afterImage.enabled = false;
 	}
+
     IEnumerator DoubleKey()
 	{
         animator.SetBool("doubleKeyPress", true);
@@ -438,6 +439,7 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(defaultTime);
         animator.SetBool("isDash", false);
     }
+
     IEnumerator CollisionOn()
 	{
         fallchanged = true;
@@ -463,6 +465,7 @@ public class PlayerController : MonoBehaviour
             rig.gravityScale = 1;
         }
     }
+
 	private void OnCollisionStay2D(Collision2D collision)
 	{
         if (sPressed && spacePressed )
