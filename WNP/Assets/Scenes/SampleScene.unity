@@ -4146,6 +4146,8 @@ MonoBehaviour:
   defaultTime: 0.25
   jumpPower: 12
   slipRate: 40
+  rig: {fileID: 0}
+  isGrounded: 0
   isFall: 0
   fallchanged: 0
 --- !u!50 &1208172247
@@ -4284,8 +4286,8 @@ CapsuleCollider2D:
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: -0.50538677}
-  m_Size: {x: 1.0525776, y: 1.9330717}
+  m_Offset: {x: 0, y: -0.5}
+  m_Size: {x: 1.04, y: 1.9}
   m_Direction: 0
 --- !u!1 &1297435638
 GameObject:
@@ -9291,6 +9293,7 @@ MonoBehaviour:
   ignoreLayer:
     serializedVersion: 2
     m_Bits: 128
+  pc: {fileID: 1208172246}
 --- !u!1 &1545042132
 GameObject:
   m_ObjectHideFlags: 0
@@ -9317,8 +9320,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1545042132}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -18.1528, y: 12.7612, z: 0}
-  m_LocalScale: {x: 4.392643, y: 36.445053, z: 1}
+  m_LocalPosition: {x: -18.16235, y: 12.7612, z: 0}
+  m_LocalScale: {x: 4.373535, y: 36.445053, z: 1}
   m_Children: []
   m_Father: {fileID: 51424648}
   m_RootOrder: 1

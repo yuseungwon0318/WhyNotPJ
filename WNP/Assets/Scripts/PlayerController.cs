@@ -4,17 +4,10 @@ using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
-/// 벽에 지면과 평행한 대시로 붙으면 어색한 상황이 연출됨.
-/// 점프시 수직으로 날아오르고 대시가 가능함.
-/// movestate가 0임.
-/// 
-/// 플랫폼을 통과할 때 착지판정이 뜸.
-/// 
-/// 특정 상황에서 바닥에 닿지 않아도 아주 조금 점프할 수 있음.
-/// 
-/// Y축 방향으로 힘이 가해지면 착지판정을 무효화시키는 것으로 대부분의 문제를 해결할 수 있어보임.
-///
-/// 
+/// 대시에 추가적인 조건을 넣어야 할 듯?
+/// 스태미나 등.
+/// 대시를 연속해서 하면 속도가 너무 빠름.
+/// 대시키를 연속해서 누르면 잔상이 계속 활성화됨.
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -62,13 +55,19 @@ using UnityEngine;
 /// 
 /// P13*점프중 일반바닥에 닿으면 걸릴 수 있음.
 /// 
+/// P14*플랫폼을 통과할 때 착지판정이 뜸.
+/// 
+/// P15*벽에 지면과 평행한 대시로 붙으면 어색한 상황이 연출됨.
+/// 점프시 수직으로 날아오르고 대시가 가능함.
+/// movestate가 0임.
+/// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
 /// S3*자를 때 검은 부분이 조금 같이 잘림. 크기를 2픽셀정도 줄여서 해결.
-/// S4*위 방향으로 힘이 가해지면 점프를 하지 못하게 함.
+/// S4*위 방향으로 힘이 가해지면 착지하지 못하게 함.
 /// S5*계단과 바닥의 collider를 조정함. 계단을 더 짧게, 바닥을 더 얕게 하면 됨.
-/// S6*타협함. --> 해결하려함; 아직은 구상단계
+/// S6*타협함. --> 해결됨.
 /// S7*다른 문제 해결중 해결됨.
 /// S8*플레이어 발이 작은 원형이기에 땅에 닿은지 판정이 실패했음. 발을 캡슐로 넓혀서 해결.
 /// S9*바닥에 닿는것을 애니메이션 조건으로 삼음.
@@ -76,6 +75,8 @@ using UnityEngine;
 /// S11*바닥에 닿는 판정 메커니즘을 변경. 전보다 조금 빠르면서, 넓은 판정을 사용할 수 있어서 해결.
 /// S12*애니메이터에 has exit time 의 문제였음
 /// S13*미끄러운 충돌을 조금 더 넓힘.
+/// S14*Y축 방향으로 힘이 가해지면 착지판정을 안나오게 함. 추가로 P6도 해결.
+/// S15*대시 끝나면 상태를 일반으로 고쳐줘서 생긴 문제. 대시 종료시 상태판정을 한번 돌려서 해결.
 /// </해결됨>
 /// 
 /// </summary>
@@ -90,9 +91,9 @@ public class PlayerController : MonoBehaviour
     public float defaultTime;
     public float jumpPower;
     public float slipRate;
+    public Rigidbody2D  rig;
     #endregion
     #region private 컴포넌트
-    Rigidbody2D rig;
     Animator animator;
     ParticleSystemRenderer afterImage;
     #endregion
@@ -114,7 +115,7 @@ public class PlayerController : MonoBehaviour
 	bool isJump = false;
     bool sPressed = false;
     bool spacePressed = false;
-    public static bool isGrounded = false;
+    public bool isGrounded = false;
     public bool isFall = false;
     public bool fallchanged = false;
     #endregion
@@ -207,7 +208,7 @@ public class PlayerController : MonoBehaviour
                 rig.velocity = v;
                 if (Input.GetKeyDown(KeyCode.S))
                 {
-                    rig.velocity += Vector2.down * 0.001f;
+                    rig.velocity += Vector2.left * 0.001f;
                 }
 
                 DetectDash();
@@ -242,42 +243,53 @@ public class PlayerController : MonoBehaviour
 
     void Dash()
 	{
-            if (ADash)
-            {
-                StartCoroutine(AfterCtrl());
-                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
-                DDash = false;
-                rig.AddForce(Vector2.left * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
-                dashTime -= Time.deltaTime;
-                declinedDashSpeed /= 1.1f;
-                if (dashTime <= 0)
-                {
-                    ADash = false;
-                    resetD = true;
-                    declinedDashSpeed = 1;
-                    moveState = (int)CharState.Normal;
-                }
-            }
-            else if (DDash)
-            {
-                StartCoroutine(AfterCtrl());
-                afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
-                ADash = false;
-                rig.AddForce(Vector2.right * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
-                dashTime -= Time.deltaTime;
-                declinedDashSpeed /= 1.1f;
-                if (dashTime <= 0)
-                {
-                    DDash = false;
-                    resetA = true;
-                    declinedDashSpeed = 1;
-                    moveState = (int)CharState.Normal;
-                }
-            }
-        
-		
-        
-        
+        if (ADash)
+        {
+            StartCoroutine(AfterCtrl());
+           afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+           DDash = false;
+           rig.AddForce(Vector2.left * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
+           dashTime -= Time.deltaTime;
+           declinedDashSpeed /= 1.1f;
+           if (dashTime <= 0)
+           {
+               ADash = false;
+               resetD = true;
+               declinedDashSpeed = 1;
+               if(Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+               {
+                   moveState = (int)CharState.Cling;
+               }
+			    else
+			    {
+                   moveState = (int)CharState.Normal;
+			    }
+               
+           }
+       }
+       else if (DDash)
+       {
+           StartCoroutine(AfterCtrl());
+           afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+           ADash = false;
+           rig.AddForce(Vector2.right * dashPower * declinedDashSpeed /** Time.deltaTime*/, ForceMode2D.Impulse);
+           dashTime -= Time.deltaTime;
+           declinedDashSpeed /= 1.1f;
+           if (dashTime <= 0)
+           {
+               DDash = false;
+               resetA = true;
+               declinedDashSpeed = 1;
+               if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+               {
+                  moveState = (int)CharState.Cling;
+               }
+               else
+               {
+                   moveState = (int)CharState.Normal;
+               }
+           }
+       }
 	}
 
     void DetectDash()
