@@ -16,12 +16,12 @@ public class PlayerFeet : MonoBehaviour
 	private void Update()
 	{
 		
-		feetCol = Physics2D.OverlapCapsule(transform.position, new Vector2(1,1), CapsuleDirection2D.Horizontal,0, ignoreLayer);
+		feetCol = Physics2D.OverlapCapsule(transform.position, new Vector2(1,1f), CapsuleDirection2D.Horizontal,0, ignoreLayer);
 		if (!feetCol)
 		{
 			pc.isGrounded = false;
 		}
-		else if ((feetCol.CompareTag("Ground") || feetCol.CompareTag("Fallable")) && Mathf.Approximately(pc.rig.velocity.y, 0))
+		else if ((feetCol.CompareTag("Ground") || feetCol.CompareTag("Fallable")) && Approximate(pc.rig.velocity.y, 0, 0.2f))
 		{
 			pc.isGrounded = true;
 		}
@@ -33,5 +33,16 @@ public class PlayerFeet : MonoBehaviour
 	private void OnDrawGizmos()
 	{
 		Gizmos.DrawSphere(transform.position, rad);
+	}
+	public static bool Approximate(float a, float b, float range)
+	{
+		if(a > b - range && a < b + range)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 }
