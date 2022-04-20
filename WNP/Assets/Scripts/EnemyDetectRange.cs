@@ -22,9 +22,10 @@ public class EnemyDetectRange : MonoBehaviour
         {
             detected = true;
         }
-        else
-        {
-            detected = false;
-        }
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        detected = false;
     }
 }

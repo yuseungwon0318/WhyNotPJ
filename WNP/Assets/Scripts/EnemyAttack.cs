@@ -1,25 +1,25 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-/// <summary>
-/// Enemy가 때리면 플레이어가 사라지는 코드 작성 예정
-/// </summary>
+
 public class EnemyAttack : MonoBehaviour
 {
-    GameObject enemyAttackRangeLeft;
-    GameObject enemyAttackRangeRight;
-    public GameObject enemyAttackRangeLeftPut;
-    public GameObject enemyAttackRangeRightPut;
+    GameObject enemyAttackRange;
+    GameObject target;
+    public GameObject enemyAttackRangePut;
+    public GameObject enemy;
 
     void Start()
     {
-        enemyAttackRangeLeft = Instantiate(enemyAttackRangeLeftPut);
-        enemyAttackRangeRight = Instantiate(enemyAttackRangeRightPut);
+        target = GameObject.Find("Player");
+        enemyAttackRange = transform.GetChild(1).gameObject;
     }
 
     void Update()
     {
-        enemyAttackRangeLeft.transform.position = transform.position;
-        enemyAttackRangeRight.transform.position = transform.position;
+        if (enemyAttackRange.GetComponent<EnemyAttackRange>().attacked == true)
+        {
+            Debug.Log("Enemy Attack");
+        }
     }
 }
