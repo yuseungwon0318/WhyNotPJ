@@ -47,7 +47,7 @@ public class PlayerController : MonoBehaviour
     [Tooltip("대시 지속시간을 나타냄")]
     public float defaultTime;
     public float jumpPower;
-    public GameObject parSpawner;
+    public GameObject playerAttackRangeSpawner;
     public Transform player;
     #endregion
     #region private 컴포넌트
@@ -96,7 +96,7 @@ public class PlayerController : MonoBehaviour
             animator.ResetTrigger("Right_idle");
             animator.ResetTrigger("Left_idle");
 
-            parSpawner.transform.position = new Vector3(player.position.x + 1, player.position.y, player.position.z);
+            playerAttackRangeSpawner.transform.position = new Vector3(player.position.x + 1, player.position.y, player.position.z);
         }
 
         if (hor < 0)
@@ -105,8 +105,8 @@ public class PlayerController : MonoBehaviour
             animator.ResetTrigger("Right_run");
             animator.ResetTrigger("Right_idle");
             animator.ResetTrigger("Left_idle");
-            
-            parSpawner.transform.position = new Vector3(player.position.x - 1, player.position.y, player.position.z);
+
+            playerAttackRangeSpawner.transform.position = new Vector3(player.position.x - 1, player.position.y, player.position.z);
         }
         
         if (hor == 0)
@@ -294,10 +294,5 @@ public class PlayerController : MonoBehaviour
         {
             isJump = true;
         }
-    }
-
-    void AnimationUpdate()
-    {
-
     }
 }
