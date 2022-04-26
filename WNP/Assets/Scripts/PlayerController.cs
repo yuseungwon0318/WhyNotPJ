@@ -5,6 +5,7 @@ using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
 /// 
+/// 대시로 계단을 올라가면 슈퍼점프
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -129,7 +130,7 @@ public class PlayerController : MonoBehaviour
     public bool fallchanged = false;
     #endregion
     #region 운동상태 관련 변수
-    int moveState = 0;
+    CharState moveState = 0;
     enum CharState
 	{
         None = -1,
@@ -137,6 +138,8 @@ public class PlayerController : MonoBehaviour
         Cling,
         WallJumpR, //우상향 점프
         WallJumpL, //좌상향 점프
+        StairWalk, //계단 위 이동
+
 	}
     #endregion
     #region raycast 등
@@ -147,50 +150,146 @@ public class PlayerController : MonoBehaviour
     #endregion
 	void Start()
     {
-        ignoreLayer = -1 & ~(7 << (ignoreLayer-2));
+        InitAll();
+        StartCoroutine(DashCharge());
+    } 
+
+    void Update()
+    {
+        animator.SetInteger("moveState", (int)moveState);
+        WallCling();
+		Move();
+    }
+
+    void FixedUpdate()
+    {
+        DetectS();
+        DetectSpace();
+        DetectStair();
+        Dash();
+    }
+
+    bool DetectS()
+	{
+        if (Input.GetKey(KeyCode.S))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    bool DetectSpace()
+	{
+        if (Input.GetKey(KeyCode.Space))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    void DetectStair()
+    {
+        if (isGrounded && rig.velocity.y > 0)
+        {
+            moveState = CharState.StairWalk;
+        }
+    }
+
+    void InitAll()
+	{
+        ignoreLayer = -1 & ~(7 << (ignoreLayer - 2));
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         afterImage = GetComponentInChildren<ParticleSystemRenderer>();
         afterImage.enabled = false;
         DashCount = DashFull;
-        StartCoroutine(DashCharge());
-    } //각종 초기화
+    }//각종 초기화
 
-    void Update()
-    {
-        animator.SetInteger("moveState", moveState);
-		if (moveState == (int)CharState.Cling)
+	#region 이동관련 함수
+    void StairWalk()
+	{
+        if(moveState == CharState.StairWalk)
 		{
+            animator.SetBool("isGrounded", isGrounded);
+            animator.SetBool("spacePress", spacePressed);
+            animator.SetFloat("Y", rig.velocity.y);
+            hor = Input.GetAxis("Horizontal");
+            if (hor > 0)
+            {
+                transform.eulerAngles = new Vector3(0, 180, 0);
+                animator.SetBool("isIdle", false);
+                animator.SetBool("isRun", true);
+            }
+
+            if (hor < 0)
+            {
+                transform.eulerAngles = new Vector3(0, 0, 0);
+                animator.SetBool("isIdle", false);
+                animator.SetBool("isRun", true);
+            }
+
+            if (Mathf.Approximately(rig.velocity.x, 0))
+            {
+                animator.SetBool("isIdle", true);
+                animator.SetBool("isRun", false);
+            }
+
+            v = new Vector2(hor * defaultSpeed, rig.velocity.y);
+            rig.velocity = v;
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                rig.velocity += Vector2.left * 0.001f;
+            }
+
+            DetectDash();
+            Jump();
+		}
+	}
+
+	void WallCling()
+	{
+        if (moveState == CharState.Cling)
+        {
             animator.SetBool("isRun", false);
             animator.SetBool("isIdle", false);
             rig.gravityScale = 0;
             rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
             rayHitR = Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer);
             rayHitL = Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer);
-            if(!rayHitL && !rayHitR)
-			{
+            if (!rayHitL && !rayHitR)
+            {
                 rig.gravityScale = 1;
                 moveState = (int)CharState.Normal;
-			}
-			WallJump();
-		} // 벽잡은 상태 코드들
-		else
-		{
-            if (moveState == (int)CharState.WallJumpR)
+            }
+            WallJump();
+        } // 벽잡은 상태 코드들
+    }
+
+    void Move()
+	{
+        if (moveState != CharState.Cling)
+        {
+            if (moveState == CharState.WallJumpR)
             {
                 transform.eulerAngles = new Vector3(0, 180, 0);
                 hor = Input.GetAxis("Horizontal");
-                rig.velocity = new Vector2(defaultSpeed + (hor * 2 ), rig.velocity.y);
+                rig.velocity = new Vector2(defaultSpeed + (hor * 2), rig.velocity.y);
             }
-            else if (moveState == (int)CharState.WallJumpL)
+            else if (moveState == CharState.WallJumpL)
             {
                 transform.eulerAngles = new Vector3(0, 0, 0);
                 hor = Input.GetAxis("Horizontal");
                 rig.velocity = new Vector2(-defaultSpeed + (hor * 2), rig.velocity.y);
             }
-            if(moveState == (int)CharState.Normal)
-			{
+            if (moveState == CharState.Normal)
+            {
                 animator.SetBool("isGrounded", isGrounded);
                 animator.SetBool("spacePress", spacePressed);
                 animator.SetFloat("Y", rig.velocity.y);
@@ -224,33 +323,8 @@ public class PlayerController : MonoBehaviour
 
                 DetectDash();
                 Jump();
-            }
-            
-        } // 일반 상태 코드들
-        
-    }
-
-    void FixedUpdate()
-    {
-        if (Input.GetKey(KeyCode.S))
-        {
-            sPressed = true;
+            } 
         }
-        else
-        {
-            sPressed = false;
-        }
-        if (Input.GetKey(KeyCode.Space))
-        {
-            spacePressed = true;
-        }
-        else
-        {
-            spacePressed = false;
-        }
-        
-		
-        Dash();
     }
 
     void Dash()
@@ -271,11 +345,11 @@ public class PlayerController : MonoBehaviour
                 declinedDashSpeed = 1;
                 if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
                 {
-                    moveState = (int)CharState.Cling;
+                    moveState = CharState.Cling;
                 }
                 else
                 {
-                    moveState = (int)CharState.Normal;
+                    moveState = CharState.Normal;
                 }
                 
             }
@@ -295,11 +369,11 @@ public class PlayerController : MonoBehaviour
                 declinedDashSpeed = 1;
                 if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
                 {
-                    moveState = (int)CharState.Cling;
+                    moveState = CharState.Cling;
                 }
                 else
                 {
-                    moveState = (int)CharState.Normal;
+                    moveState = CharState.Normal;
                 }
             }
             
@@ -375,11 +449,11 @@ public class PlayerController : MonoBehaviour
             rig.gravityScale = 1;
             if (rayHitR.transform != null) //오른쪽에 물체
             {
-                moveState = (int)CharState.WallJumpL;
+                moveState = CharState.WallJumpL;
             }
             else if(rayHitL.transform != null) //왼쪽에 물체
             {
-                moveState = (int)CharState.WallJumpR;
+                moveState = CharState.WallJumpR;
             }
             if(rayHitL.transform != null || rayHitR.transform != null)
 			{
@@ -407,8 +481,10 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+	#endregion
 
-    IEnumerator DashCharge()
+	#region IEnumerator
+	IEnumerator DashCharge()
 	{
 		while (true)
 		{
@@ -449,19 +525,19 @@ public class PlayerController : MonoBehaviour
         yield return null; // 1프레임 대기
         fallchanged = false;
     } //낙하
-
+    #endregion
     void OnCollisionEnter2D(Collision2D col)
     {
         if(col.gameObject.layer == 8 && (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
 		{
-            moveState = (int)CharState.Cling;
+            moveState = CharState.Cling;
             rig.velocity = Vector2.zero;
             isJump = false;
 		}
         else if ((col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable")) && rig.velocity.y <= 0)
         {
             isJump = false;
-            moveState = (int)CharState.Normal;
+            moveState = CharState.Normal;
             rig.gravityScale = 1;
         }
     }
