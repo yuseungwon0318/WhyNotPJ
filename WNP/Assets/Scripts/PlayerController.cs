@@ -7,6 +7,8 @@ using UnityEngine;
 /// 
 /// 대시로 계단을 올라가면 슈퍼점프
 /// 
+/// 내려가기가 안먹힘.
+/// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
 /// 
@@ -64,6 +66,8 @@ using UnityEngine;
 /// 대시를 연속해서 하면 속도가 너무 빠름.
 /// 대시키를 연속해서 누르면 잔상이 계속 활성화됨.
 /// 
+/// P17*
+/// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
@@ -81,6 +85,7 @@ using UnityEngine;
 /// S14*Y축 방향으로 힘이 가해지면 착지판정을 안나오게 함. 추가로 P6도 해결.
 /// S15*대시 끝나면 상태를 일반으로 고쳐줘서 생긴 문제. 대시 종료시 상태판정을 한번 돌려서 해결.
 /// S16*더함.
+/// S17*
 /// </해결됨>
 /// 
 /// </summary>
@@ -138,7 +143,7 @@ public class PlayerController : MonoBehaviour
         Cling,
         WallJumpR, //우상향 점프
         WallJumpL, //좌상향 점프
-        StairWalk, //계단 위 이동
+        StairWalk,
 
 	}
     #endregion
@@ -146,7 +151,8 @@ public class PlayerController : MonoBehaviour
     RaycastHit2D rayHitR;
     RaycastHit2D rayHitL;
     float rayLen = 1.0f;
-    int ignoreLayer = 7;
+    int ignoreLayer = 7; // 계단충돌 감지
+    int ignoreLayerSec = 9; // 계단충돌은 감지 안함. (계단에 붙기 해제)
     #endregion
 	void Start()
     {
@@ -158,14 +164,14 @@ public class PlayerController : MonoBehaviour
     {
         animator.SetInteger("moveState", (int)moveState);
         WallCling();
+        StairWalk();
 		Move();
     }
 
     void FixedUpdate()
     {
-        DetectS();
-        DetectSpace();
-        DetectStair();
+        sPressed =  DetectS();
+        spacePressed =  DetectSpace();
         Dash();
     }
 
@@ -193,17 +199,11 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void DetectStair()
-    {
-        if (isGrounded && rig.velocity.y > 0)
-        {
-            moveState = CharState.StairWalk;
-        }
-    }
-
     void InitAll()
 	{
-        ignoreLayer = -1 & ~(7 << (ignoreLayer - 2));
+        ignoreLayer = ~(1 << ignoreLayer);
+        Debug.Log(  ignoreLayer & ~(1 << ignoreLayerSec)  );
+        ignoreLayerSec = ignoreLayer & ~(1 << ignoreLayerSec); //드모르간의 법칙
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
@@ -213,44 +213,47 @@ public class PlayerController : MonoBehaviour
     }//각종 초기화
 
 	#region 이동관련 함수
+
     void StairWalk()
 	{
         if(moveState == CharState.StairWalk)
 		{
-            animator.SetBool("isGrounded", isGrounded);
-            animator.SetBool("spacePress", spacePressed);
-            animator.SetFloat("Y", rig.velocity.y);
-            hor = Input.GetAxis("Horizontal");
-            if (hor > 0)
-            {
-                transform.eulerAngles = new Vector3(0, 180, 0);
-                animator.SetBool("isIdle", false);
-                animator.SetBool("isRun", true);
-            }
+            if (Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
+			{
+                    animator.SetBool("isGrounded", isGrounded);
+                    animator.SetBool("spacePress", spacePressed);
+                    hor = Input.GetAxis("Horizontal");
+                    if (hor > 0)
+                    {
+                        transform.eulerAngles = new Vector3(0, 180, 0);
+                        animator.SetBool("isIdle", false);
+                        animator.SetBool("isRun", true);
+                    }
 
-            if (hor < 0)
-            {
-                transform.eulerAngles = new Vector3(0, 0, 0);
-                animator.SetBool("isIdle", false);
-                animator.SetBool("isRun", true);
-            }
+                    if (hor < 0)
+                    {
+                        transform.eulerAngles = new Vector3(0, 0, 0);
+                        animator.SetBool("isIdle", false);
+                        animator.SetBool("isRun", true);
+                    }
 
-            if (Mathf.Approximately(rig.velocity.x, 0))
-            {
-                animator.SetBool("isIdle", true);
-                animator.SetBool("isRun", false);
-            }
+                    if (Mathf.Approximately(rig.velocity.x, 0))
+                    {
+                        animator.SetBool("isIdle", true);
+                        animator.SetBool("isRun", false);
+                    }
 
-            v = new Vector2(hor * defaultSpeed, rig.velocity.y);
-            rig.velocity = v;
-            if (Input.GetKeyDown(KeyCode.S))
+                    v = new Vector2(hor * defaultSpeed, rig.velocity.y);
+                    rig.velocity = v;
+                
+		    }
+            else
             {
-                rig.velocity += Vector2.left * 0.001f;
+                moveState = CharState.Normal;
+                rig.velocity = Vector2.zero;
             }
-
-            DetectDash();
-            Jump();
-		}
+        }
+		
 	}
 
 	void WallCling()
@@ -261,14 +264,15 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("isIdle", false);
             rig.gravityScale = 0;
             rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
-            rayHitR = Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer);
-            rayHitL = Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer);
+            rayHitR = Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayerSec);
+            rayHitL = Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayerSec);
             if (!rayHitL && !rayHitR)
             {
                 rig.gravityScale = 1;
                 moveState = (int)CharState.Normal;
             }
             WallJump();
+            WallJumpCancel();
         } // 벽잡은 상태 코드들
     }
 
@@ -276,6 +280,7 @@ public class PlayerController : MonoBehaviour
 	{
         if (moveState != CharState.Cling)
         {
+            rig.gravityScale = 1;
             if (moveState == CharState.WallJumpR)
             {
                 transform.eulerAngles = new Vector3(0, 180, 0);
@@ -466,6 +471,24 @@ public class PlayerController : MonoBehaviour
         }
 	}
 
+    void WallJumpCancel()
+	{
+        if(moveState == CharState.Cling)
+		{
+            if (rayHitL && Input.GetKeyDown(KeyCode.D))
+            {
+                moveState = CharState.Normal;
+                transform.position = new Vector3(transform.position.x + 0.2f, transform.position.y, transform.position.z);
+            }
+            else if (rayHitR && Input.GetKeyDown(KeyCode.A))
+            {
+                moveState = CharState.Normal;
+                transform.position = new Vector3(transform.position.x - 0.2f, transform.position.y, transform.position.z);
+            }
+        }
+        
+    }
+
     void Jump()
     {
         if (!sPressed)
@@ -526,9 +549,15 @@ public class PlayerController : MonoBehaviour
         fallchanged = false;
     } //낙하
     #endregion
+
     void OnCollisionEnter2D(Collision2D col)
     {
-        if(col.gameObject.layer == 8 && (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
+        if(col.gameObject.layer == 9 && moveState == CharState.Normal)
+		{
+            moveState = CharState.StairWalk;
+            
+		}
+        else if(col.gameObject.layer == 8 && (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
 		{
             moveState = CharState.Cling;
             rig.velocity = Vector2.zero;
@@ -547,6 +576,11 @@ public class PlayerController : MonoBehaviour
         if (sPressed && spacePressed )
         {
             StartCoroutine(CollisionOn());
+        }
+        if (collision.gameObject.layer == 9 && moveState == CharState.Normal)
+        {
+            moveState = CharState.StairWalk;
+
         }
     }
 }

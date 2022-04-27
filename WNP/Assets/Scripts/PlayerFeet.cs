@@ -32,7 +32,7 @@ public class PlayerFeet : MonoBehaviour
 	}
 	private void OnDrawGizmos()
 	{
-		Gizmos.DrawSphere(transform.position, rad);
+		Gizmos.DrawWireSphere(transform.position, rad);
 	}
 	public static bool Approximate(float a, float b, float range)
 	{
