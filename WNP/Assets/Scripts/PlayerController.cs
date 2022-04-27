@@ -1,13 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
 /// 
-/// 대시로 계단을 올라가면 슈퍼점프
+/// 계단에 대해서 대시를 사용할 때, 조건에 따라 아래 3가지 상황중 1개가 발생.
+/// 이동하면서 대시를 입력해서 계단을 완전히 떠나고 나서도 대시가 유지될 때 -> 정상적으로 의도한 이동
+/// 가만히 있다가 대시 + 대시로 계단을 벗어나지 못함 -> 애니메이션 오류/슈퍼점프 (조작여부에 따라 갈림.)
+/// 이동하다가 대시 -> 슈퍼점프
 /// 
-/// 내려가기가 안먹힘.
+/// 애니메이션 오류 = fall 상태로 고정됨.
+/// 아주 잠깐 공중에 떴다가 떨어지면서 fall이 됐는데, 다른곳으로 갈 수 없어서 그런듯.
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -73,8 +78,8 @@ using UnityEngine;
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
 /// S3*자를 때 검은 부분이 조금 같이 잘림. 크기를 2픽셀정도 줄여서 해결.
 /// S4*위 방향으로 힘이 가해지면 착지하지 못하게 함.
-/// S5*계단과 바닥의 collider를 조정함. 계단을 더 짧게, 바닥을 더 얕게 하면 됨.
-/// S6*타협함. --> 해결됨.
+/// S5*수정하려고 노력중
+/// S6*타협함. --> 해결됨. (S*14)
 /// S7*다른 문제 해결중 해결됨.
 /// S8*플레이어 발이 작은 원형이기에 땅에 닿은지 판정이 실패했음. 발을 캡슐로 넓혀서 해결.
 /// S9*바닥에 닿는것을 애니메이션 조건으로 삼음.
@@ -152,8 +157,9 @@ public class PlayerController : MonoBehaviour
     RaycastHit2D rayHitL;
     float rayLen = 1.0f;
     int ignoreLayer = 7; // 계단충돌 감지
-    int ignoreLayerSec = 9; // 계단충돌은 감지 안함. (계단에 붙기 해제)
-    #endregion
+    int ignoreLayerSec = 9; // 계단충돌은 감지 안함. 벽붙잡기 용도.(계단에 붙기 해제)
+	#endregion
+	#region 유니티기본
 	void Start()
     {
         InitAll();
@@ -163,6 +169,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         animator.SetInteger("moveState", (int)moveState);
+        Debug.DrawRay(transform.position, rig.velocity.normalized, Color.cyan, 10f);
         WallCling();
         StairWalk();
 		Move();
@@ -174,8 +181,10 @@ public class PlayerController : MonoBehaviour
         spacePressed =  DetectSpace();
         Dash();
     }
+	#endregion
+	#region 조작관련
 
-    bool DetectS()
+	bool DetectS()
 	{
         if (Input.GetKey(KeyCode.S))
         {
@@ -199,10 +208,11 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    void InitAll()
+	#endregion
+
+	void InitAll()
 	{
         ignoreLayer = ~(1 << ignoreLayer);
-        Debug.Log(  ignoreLayer & ~(1 << ignoreLayerSec)  );
         ignoreLayerSec = ignoreLayer & ~(1 << ignoreLayerSec); //드모르간의 법칙
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
@@ -220,8 +230,10 @@ public class PlayerController : MonoBehaviour
 		{
             if (Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
 			{
-                    animator.SetBool("isGrounded", isGrounded);
+                Debug.Log("붙음.");
+                animator.SetBool("isGrounded", isGrounded);
                     animator.SetBool("spacePress", spacePressed);
+                animator.SetFloat("Y", rig.velocity.y);
                     hor = Input.GetAxis("Horizontal");
                     if (hor > 0)
                     {
@@ -245,12 +257,14 @@ public class PlayerController : MonoBehaviour
 
                     v = new Vector2(hor * defaultSpeed, rig.velocity.y);
                     rig.velocity = v;
-                
+                DetectDash();
 		    }
             else
             {
+                Debug.Log("떨어짐");
                 moveState = CharState.Normal;
                 rig.velocity = Vector2.zero;
+                Debug.Log("transition");
             }
         }
 		
@@ -348,7 +362,7 @@ public class PlayerController : MonoBehaviour
                 ADash = false;
                 resetD = true;
                 declinedDashSpeed = 1;
-                if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+                if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayerSec) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayerSec))
                 {
                     moveState = CharState.Cling;
                 }
@@ -376,6 +390,10 @@ public class PlayerController : MonoBehaviour
                 {
                     moveState = CharState.Cling;
                 }
+                else if(Physics2D.OverlapCircle(Feet.position, 0.3f, ignoreLayer))
+				{
+                    moveState = CharState.StairWalk;
+				}
                 else
                 {
                     moveState = CharState.Normal;
@@ -552,12 +570,12 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        if(col.gameObject.layer == 9 && moveState == CharState.Normal)
+		if (col.gameObject.layer == 9 && moveState == CharState.Normal)
 		{
-            moveState = CharState.StairWalk;
+			moveState = CharState.StairWalk;
             
 		}
-        else if(col.gameObject.layer == 8 && (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
+		if (col.gameObject.layer == 8 && (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
 		{
             moveState = CharState.Cling;
             rig.velocity = Vector2.zero;
@@ -577,10 +595,14 @@ public class PlayerController : MonoBehaviour
         {
             StartCoroutine(CollisionOn());
         }
-        if (collision.gameObject.layer == 9 && moveState == CharState.Normal)
-        {
-            moveState = CharState.StairWalk;
+		if (collision.gameObject.layer == 9 && moveState == CharState.Normal)
+		{
+			moveState = CharState.StairWalk;
 
-        }
-    }
+		}
+	}
+
+	private void OnCollisionExit2D(Collision2D collision)
+    { 
+	}
 }
