@@ -10,9 +10,9 @@ using UnityEngine;
 /// 이동하면서 대시를 입력해서 계단을 완전히 떠나고 나서도 대시가 유지될 때 -> 정상적으로 의도한 이동
 /// 가만히 있다가 대시 + 대시로 계단을 벗어나지 못함 -> 애니메이션 오류/슈퍼점프 (조작여부에 따라 갈림.)
 /// 이동하다가 대시 -> 슈퍼점프
+/// 대시중 방향전환 -> 슈퍼점프
 /// 
-/// 애니메이션 오류 = fall 상태로 고정됨.
-/// 아주 잠깐 공중에 떴다가 떨어지면서 fall이 됐는데, 다른곳으로 갈 수 없어서 그런듯.
+/// 
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -71,7 +71,8 @@ using UnityEngine;
 /// 대시를 연속해서 하면 속도가 너무 빠름.
 /// 대시키를 연속해서 누르면 잔상이 계속 활성화됨.
 /// 
-/// P17*
+/// P17*애니메이션 오류 = fall 상태로 고정됨.
+/// 아주 잠깐 공중에 떴다가 떨어지면서 fall이 됐는데, 다른곳으로 갈 수 없어서 그런듯.
 /// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
@@ -90,7 +91,7 @@ using UnityEngine;
 /// S14*Y축 방향으로 힘이 가해지면 착지판정을 안나오게 함. 추가로 P6도 해결.
 /// S15*대시 끝나면 상태를 일반으로 고쳐줘서 생긴 문제. 대시 종료시 상태판정을 한번 돌려서 해결.
 /// S16*더함.
-/// S17*
+/// S17*계단을 올라가는 상태는 항상 바닥에 닿아 있을 것이므로 계단상태에서 바닥에 닿았는지 체크를 항상 TRUE로 함.
 /// </해결됨>
 /// 
 /// </summary>
@@ -149,15 +150,16 @@ public class PlayerController : MonoBehaviour
         WallJumpR, //우상향 점프
         WallJumpL, //좌상향 점프
         StairWalk,
-
-	}
+    }
     #endregion
     #region raycast 등
     RaycastHit2D rayHitR;
     RaycastHit2D rayHitL;
     float rayLen = 1.0f;
     int ignoreLayer = 7; // 계단충돌 감지
-    int ignoreLayerSec = 9; // 계단충돌은 감지 안함. 벽붙잡기 용도.(계단에 붙기 해제)
+    int ignoreLayerSec = 9; // 계단충돌은 감지 안함. 벽붙잡기 용도.(계단에 붙기 해제) + 땅도 감지 안함.
+    int ignoreLayerTrd = 10; // 용도 없음
+    int ignoreLayerFth = 6; //용도 없음
 	#endregion
 	#region 유니티기본
 	void Start()
@@ -213,7 +215,7 @@ public class PlayerController : MonoBehaviour
 	void InitAll()
 	{
         ignoreLayer = ~(1 << ignoreLayer);
-        ignoreLayerSec = ignoreLayer & ~(1 << ignoreLayerSec); //드모르간의 법칙
+        ignoreLayerSec = ignoreLayer & ~(1 << ignoreLayerSec) & ~(1<<ignoreLayerTrd) & ~(1<<ignoreLayerFth); //드모르간의 법칙
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
@@ -230,14 +232,14 @@ public class PlayerController : MonoBehaviour
 		{
             if (Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
 			{
-                Debug.Log("붙음.");
-                animator.SetBool("isGrounded", isGrounded);
+                animator.SetBool("isGrounded", true);
                     animator.SetBool("spacePress", spacePressed);
                 animator.SetFloat("Y", rig.velocity.y);
                     hor = Input.GetAxis("Horizontal");
                     if (hor > 0)
                     {
                         transform.eulerAngles = new Vector3(0, 180, 0);
+                        Debug.Log("dl");
                         animator.SetBool("isIdle", false);
                         animator.SetBool("isRun", true);
                     }
@@ -245,12 +247,14 @@ public class PlayerController : MonoBehaviour
                     if (hor < 0)
                     {
                         transform.eulerAngles = new Vector3(0, 0, 0);
+                    Debug.Log("dl");
                         animator.SetBool("isIdle", false);
                         animator.SetBool("isRun", true);
                     }
 
                     if (Mathf.Approximately(rig.velocity.x, 0))
                     {
+                        Debug.Log("wjd");
                         animator.SetBool("isIdle", true);
                         animator.SetBool("isRun", false);
                     }
@@ -350,7 +354,6 @@ public class PlayerController : MonoBehaviour
 	{
         if (ADash)
 		{
-           
             StartCoroutine(AfterCtrl());
             afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
             DDash = false;
@@ -362,9 +365,19 @@ public class PlayerController : MonoBehaviour
                 ADash = false;
                 resetD = true;
                 declinedDashSpeed = 1;
-                if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayerSec) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayerSec))
+                if (Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
                 {
                     moveState = CharState.Cling;
+                    transform.eulerAngles = new Vector3(0, 180, 0);
+                }
+                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer))
+                {
+                    moveState = CharState.Cling;
+                    transform.eulerAngles = new Vector3(0, 0, 0);
+                }
+                else if (moveState == CharState.StairWalk)
+                {
+                    rig.velocity = Vector2.zero;
                 }
                 else
                 {
@@ -386,13 +399,20 @@ public class PlayerController : MonoBehaviour
                DDash = false;
                 resetA = true;
                 declinedDashSpeed = 1;
-                if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+                if ( Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
                 {
                     moveState = CharState.Cling;
+                    transform.eulerAngles = new Vector3(0,180,0);
                 }
-                else if(Physics2D.OverlapCircle(Feet.position, 0.3f, ignoreLayer))
+                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer))
 				{
-                    moveState = CharState.StairWalk;
+                    moveState = CharState.Cling;
+                    transform.eulerAngles = new Vector3(0,0,0);
+                }
+                else if(moveState == CharState.StairWalk)
+				{
+                    Debug.Log("dddd");
+                    rig.velocity = Vector2.zero;
 				}
                 else
                 {
@@ -496,12 +516,12 @@ public class PlayerController : MonoBehaviour
             if (rayHitL && Input.GetKeyDown(KeyCode.D))
             {
                 moveState = CharState.Normal;
-                transform.position = new Vector3(transform.position.x + 0.2f, transform.position.y, transform.position.z);
+                transform.position = new Vector3(transform.position.x + 0.5f, transform.position.y, transform.position.z);
             }
             else if (rayHitR && Input.GetKeyDown(KeyCode.A))
             {
                 moveState = CharState.Normal;
-                transform.position = new Vector3(transform.position.x - 0.2f, transform.position.y, transform.position.z);
+                transform.position = new Vector3(transform.position.x - 0.5f, transform.position.y, transform.position.z);
             }
         }
         
