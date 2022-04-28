@@ -1,18 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Mathematics;
 using UnityEngine;
 /// <summary>
 /// 현재 수정해야하는 상황 :
 /// 
-/// 계단에 대해서 대시를 사용할 때, 조건에 따라 아래 3가지 상황중 1개가 발생.
-/// 이동하면서 대시를 입력해서 계단을 완전히 떠나고 나서도 대시가 유지될 때 -> 정상적으로 의도한 이동
-/// 가만히 있다가 대시 + 대시로 계단을 벗어나지 못함 -> 애니메이션 오류/슈퍼점프 (조작여부에 따라 갈림.)
-/// 이동하다가 대시 -> 슈퍼점프
-/// 대시중 방향전환 -> 슈퍼점프
-/// 
-/// 
+/// 대시로 벽에 붙은 후 점프를 대시가 끝나기 전에 누르면 에스컬레이터 현상. (중력을 0으로 한상태로 변하지 않음.)
+/// 벽점프 판정으로 대시 종료시 검출하는 ray보다 먼 거리를 이동하지 못함 -> 종료후 cling 상태로 이동하며 공중부양.
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -74,12 +70,17 @@ using UnityEngine;
 /// P17*애니메이션 오류 = fall 상태로 고정됨.
 /// 아주 잠깐 공중에 떴다가 떨어지면서 fall이 됐는데, 다른곳으로 갈 수 없어서 그런듯.
 /// 
+/// P18*계단에 대해서 대시를 사용할 때, 조건에 따라 아래 3가지 상황중 1개가 발생.
+/// 가만히 있다가 대시 + 대시로 계단을 벗어나지 못함 -> 애니메이션 오류/슈퍼점프 (조작여부에 따라 갈림.)
+/// 이동하다가 대시 -> 슈퍼점프
+/// 대시중 방향전환 -> 슈퍼점프
+/// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
 /// S3*자를 때 검은 부분이 조금 같이 잘림. 크기를 2픽셀정도 줄여서 해결.
 /// S4*위 방향으로 힘이 가해지면 착지하지 못하게 함.
-/// S5*수정하려고 노력중
+/// S5*수정하려고 노력중 -> 해결됨. (S*18)
 /// S6*타협함. --> 해결됨. (S*14)
 /// S7*다른 문제 해결중 해결됨.
 /// S8*플레이어 발이 작은 원형이기에 땅에 닿은지 판정이 실패했음. 발을 캡슐로 넓혀서 해결.
@@ -92,6 +93,7 @@ using UnityEngine;
 /// S15*대시 끝나면 상태를 일반으로 고쳐줘서 생긴 문제. 대시 종료시 상태판정을 한번 돌려서 해결.
 /// S16*더함.
 /// S17*계단을 올라가는 상태는 항상 바닥에 닿아 있을 것이므로 계단상태에서 바닥에 닿았는지 체크를 항상 TRUE로 함.
+/// S18*대시 종료시 계단에 닿아있다면 Y방향 속도를 초기화함.
 /// </해결됨>
 /// 
 /// </summary>
@@ -156,10 +158,8 @@ public class PlayerController : MonoBehaviour
     RaycastHit2D rayHitR;
     RaycastHit2D rayHitL;
     float rayLen = 1.0f;
-    int ignoreLayer = 7; // 계단충돌 감지
-    int ignoreLayerSec = 9; // 계단충돌은 감지 안함. 벽붙잡기 용도.(계단에 붙기 해제) + 땅도 감지 안함.
-    int ignoreLayerTrd = 10; // 용도 없음
-    int ignoreLayerFth = 6; //용도 없음
+    int ignoreLayer = 7; // 착지를 비롯한 레이캐스트 감지 용도. 플레이어만 무시함.
+    int useLayerCling = 8; // 벽붙잡기 용도. 오로지 Stickable만 감지함.
 	#endregion
 	#region 유니티기본
 	void Start()
@@ -171,12 +171,10 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         animator.SetInteger("moveState", (int)moveState);
-        Debug.DrawRay(transform.position, rig.velocity.normalized, Color.cyan, 10f);
         WallCling();
         StairWalk();
 		Move();
     }
-
     void FixedUpdate()
     {
         sPressed =  DetectS();
@@ -215,7 +213,7 @@ public class PlayerController : MonoBehaviour
 	void InitAll()
 	{
         ignoreLayer = ~(1 << ignoreLayer);
-        ignoreLayerSec = ignoreLayer & ~(1 << ignoreLayerSec) & ~(1<<ignoreLayerTrd) & ~(1<<ignoreLayerFth); //드모르간의 법칙
+        useLayerCling = 1 << useLayerCling;
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
@@ -239,7 +237,6 @@ public class PlayerController : MonoBehaviour
                     if (hor > 0)
                     {
                         transform.eulerAngles = new Vector3(0, 180, 0);
-                        Debug.Log("dl");
                         animator.SetBool("isIdle", false);
                         animator.SetBool("isRun", true);
                     }
@@ -247,14 +244,12 @@ public class PlayerController : MonoBehaviour
                     if (hor < 0)
                     {
                         transform.eulerAngles = new Vector3(0, 0, 0);
-                    Debug.Log("dl");
                         animator.SetBool("isIdle", false);
                         animator.SetBool("isRun", true);
                     }
 
                     if (Mathf.Approximately(rig.velocity.x, 0))
                     {
-                        Debug.Log("wjd");
                         animator.SetBool("isIdle", true);
                         animator.SetBool("isRun", false);
                     }
@@ -282,8 +277,8 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("isIdle", false);
             rig.gravityScale = 0;
             rig.AddForce(Vector2.down * Time.deltaTime * slipRate);
-            rayHitR = Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayerSec);
-            rayHitL = Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayerSec);
+            rayHitR = Physics2D.Raycast(Feet.position, Vector2.right, rayLen, useLayerCling);
+            rayHitL = Physics2D.Raycast(Feet.position, Vector2.left, rayLen, useLayerCling);
             if (!rayHitL && !rayHitR)
             {
                 rig.gravityScale = 1;
@@ -365,17 +360,17 @@ public class PlayerController : MonoBehaviour
                 ADash = false;
                 resetD = true;
                 declinedDashSpeed = 1;
-                if (Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+                if (Physics2D.Raycast(Feet.position, Vector2.right, rayLen, useLayerCling))
                 {
                     moveState = CharState.Cling;
                     transform.eulerAngles = new Vector3(0, 180, 0);
                 }
-                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer))
+                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, useLayerCling))
                 {
                     moveState = CharState.Cling;
                     transform.eulerAngles = new Vector3(0, 0, 0);
                 }
-                else if (moveState == CharState.StairWalk)
+                else if (Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
                 {
                     rig.velocity = Vector2.zero;
                 }
@@ -399,19 +394,18 @@ public class PlayerController : MonoBehaviour
                DDash = false;
                 resetA = true;
                 declinedDashSpeed = 1;
-                if ( Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+                if ( Physics2D.Raycast(Feet.position, Vector2.right, rayLen, useLayerCling))
                 {
                     moveState = CharState.Cling;
                     transform.eulerAngles = new Vector3(0,180,0);
                 }
-                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer))
+                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, useLayerCling))
 				{
                     moveState = CharState.Cling;
                     transform.eulerAngles = new Vector3(0,0,0);
                 }
-                else if(moveState == CharState.StairWalk)
+                else if(Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
 				{
-                    Debug.Log("dddd");
                     rig.velocity = Vector2.zero;
 				}
                 else
@@ -620,9 +614,5 @@ public class PlayerController : MonoBehaviour
 			moveState = CharState.StairWalk;
 
 		}
-	}
-
-	private void OnCollisionExit2D(Collision2D collision)
-    { 
 	}
 }
