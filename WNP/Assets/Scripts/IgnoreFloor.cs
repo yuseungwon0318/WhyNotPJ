@@ -6,16 +6,15 @@ public class IgnoreFloor : MonoBehaviour
 {
 	public int ignoreLayer = 7;
 	public PlatformEffector2D myPlat;
-	public PlayerController pc;
 	private void Start()
 	{
 		myPlat = GetComponent<PlatformEffector2D>();
 	}
 	private void Update()
 	{
-		if (pc.fallchanged)
+		if (PlayerController.Instance.fallchanged)
 		{
-			if (pc.isFall)
+			if (PlayerController.Instance.isFall)
 			{
 				PlatformIgnore();
 			}

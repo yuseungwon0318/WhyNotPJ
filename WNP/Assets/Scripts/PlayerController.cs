@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.UIElements;
 /// <summary>
 /// 현재 수정해야하는 상황 :
 /// 
@@ -100,6 +102,9 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
 	#region public 변수
+    public static PlayerController Instance;
+    public UnityEvent OnDash;
+
     public Transform Feet;
 	public float DashGap;
     public int DashFull; //최대 대시 충전량
@@ -212,6 +217,7 @@ public class PlayerController : MonoBehaviour
 
 	void InitAll()
 	{
+        Instance = this;
         ignoreLayer = ~(1 << ignoreLayer);
         useLayerCling = 1 << useLayerCling;
         defaultSpeed = speed;
@@ -360,29 +366,11 @@ public class PlayerController : MonoBehaviour
                 ADash = false;
                 resetD = true;
                 declinedDashSpeed = 1;
-                if (Physics2D.Raycast(Feet.position, Vector2.right, rayLen, useLayerCling))
-                {
-                    moveState = CharState.Cling;
-                    transform.eulerAngles = new Vector3(0, 180, 0);
-                }
-                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, useLayerCling))
-                {
-                    moveState = CharState.Cling;
-                    transform.eulerAngles = new Vector3(0, 0, 0);
-                }
-                else if (Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
-                {
-                    rig.velocity = Vector2.zero;
-                }
-                else
-                {
-                    moveState = CharState.Normal;
-                }
-                
             }
         }
         else if (DDash)
         {
+            
             StartCoroutine(AfterCtrl());
             afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
             ADash = false;
@@ -394,24 +382,6 @@ public class PlayerController : MonoBehaviour
                DDash = false;
                 resetA = true;
                 declinedDashSpeed = 1;
-                if ( Physics2D.Raycast(Feet.position, Vector2.right, rayLen, useLayerCling))
-                {
-                    moveState = CharState.Cling;
-                    transform.eulerAngles = new Vector3(0,180,0);
-                }
-                else if (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, useLayerCling))
-				{
-                    moveState = CharState.Cling;
-                    transform.eulerAngles = new Vector3(0,0,0);
-                }
-                else if(Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
-				{
-                    rig.velocity = Vector2.zero;
-				}
-                else
-                {
-                    moveState = CharState.Normal;
-                }
             }
             
         }
