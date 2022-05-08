@@ -12,7 +12,7 @@ public class UICtrlDash : MonoBehaviour
 	// Update is called once per frame
 	private void Start()
 	{
-		dashFullVarTxt.text = "/ " + PlayerController.Instance.DashFull;
+		dashFullVarTxt.text = $"/ {PlayerController.Instance.DashFull}";
 		dashCountVarTxt.text = PlayerController.Instance.DashCount.ToString();
 	}
 	void Update()

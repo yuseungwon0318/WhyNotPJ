@@ -4,13 +4,18 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
 /// <summary>
 /// 현재 수정해야하는 상황 :
 /// 
-/// 대시로 벽에 붙은 후 점프를 대시가 끝나기 전에 누르면 에스컬레이터 현상. (중력을 0으로 한상태로 변하지 않음.)
-/// 벽점프 판정으로 대시 종료시 검출하는 ray보다 먼 거리를 이동하지 못함 -> 종료후 cling 상태로 이동하며 공중부양.
+/// 간헐적으로 플레이어와 붙잡기벽간의 충돌이 실패함.
+/// 플레이어가 벽에 비비는 행동을 막기 위해 추가한 충돌만 검출이 일어나고 안쪽에 있는 플레이어와 충돌은 발생하지 않음.
+/// 벽에 비비는 행동을 막기 위한 다른 방법을 찾거나, 안쪽 플레이어와의 충돌을 일으킬 방법을 찾아야 함.
+/// 
+/// 플랫폼이펙터를 사용해서 미끄러움을 만드려 했으나, 오른쪽 방향에서의 충돌만 마찰을 무시.
+/// 좌우가 다른 코드가 있는지 확인이 필요. 다른 문제일수도 있음.
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -103,7 +108,7 @@ public class PlayerController : MonoBehaviour
 {
 	#region public 변수
     public static PlayerController Instance;
-    public UnityEvent OnDash;
+    public UnityEvent<float> OnDash;
 
     public Transform Feet;
 	public float DashGap;
@@ -121,7 +126,6 @@ public class PlayerController : MonoBehaviour
     #endregion
     #region private 컴포넌트
     Animator animator;
-    ParticleSystemRenderer afterImage;
     #endregion
     #region 이동&대시관련 변수들
     public int DashCount; //현재 대시 갯수 (UI에서 쓰기 위해 public임. 값 수정은 영향 없음.
@@ -162,7 +166,7 @@ public class PlayerController : MonoBehaviour
     #region raycast 등
     RaycastHit2D rayHitR;
     RaycastHit2D rayHitL;
-    float rayLen = 1.0f;
+    float rayLen = 1f;
     int ignoreLayer = 7; // 착지를 비롯한 레이캐스트 감지 용도. 플레이어만 무시함.
     int useLayerCling = 8; // 벽붙잡기 용도. 오로지 Stickable만 감지함.
 	#endregion
@@ -223,10 +227,14 @@ public class PlayerController : MonoBehaviour
         defaultSpeed = speed;
         rig = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        afterImage = GetComponentInChildren<ParticleSystemRenderer>();
-        afterImage.enabled = false;
         DashCount = DashFull;
     }//각종 초기화
+
+    void Look(Vector2 dir)
+	{
+        Vector2 rotation = new Vector2(dir.y, Mathf.Max( 0,dir.x)) * 180;
+        transform.eulerAngles = rotation;
+	} //방향을 지정. vector2.right, vector2.left를 사용. 각각 180, 0도. (Y)
 
 	#region 이동관련 함수
 
@@ -237,19 +245,18 @@ public class PlayerController : MonoBehaviour
             if (Physics2D.OverlapCircle(Feet.position, 0.5f, ignoreLayer))
 			{
                 animator.SetBool("isGrounded", true);
-                    animator.SetBool("spacePress", spacePressed);
                 animator.SetFloat("Y", rig.velocity.y);
                     hor = Input.GetAxis("Horizontal");
                     if (hor > 0)
                     {
-                        transform.eulerAngles = new Vector3(0, 180, 0);
+                        Look(Vector2.right);
                         animator.SetBool("isIdle", false);
                         animator.SetBool("isRun", true);
                     }
 
                     if (hor < 0)
                     {
-                        transform.eulerAngles = new Vector3(0, 0, 0);
+                        Look(Vector2.left);
                         animator.SetBool("isIdle", false);
                         animator.SetBool("isRun", true);
                     }
@@ -266,10 +273,8 @@ public class PlayerController : MonoBehaviour
 		    }
             else
             {
-                Debug.Log("떨어짐");
                 moveState = CharState.Normal;
                 rig.velocity = Vector2.zero;
-                Debug.Log("transition");
             }
         }
 		
@@ -295,58 +300,66 @@ public class PlayerController : MonoBehaviour
         } // 벽잡은 상태 코드들
     }
 
+    void WallJumpCtrl()
+	{
+        if (moveState == CharState.WallJumpR)
+        {
+            Look(Vector2.right);
+            rig.velocity = new Vector2(defaultSpeed + hor, rig.velocity.y);
+        }
+        else if (moveState == CharState.WallJumpL)
+        {
+            Look(Vector2.left);
+            rig.velocity = new Vector2(-defaultSpeed + hor, rig.velocity.y);
+        }
+    }
+
+    void MoveAndAnim()
+	{
+        animator.SetBool("isGrounded", isGrounded);
+        animator.SetFloat("Y", rig.velocity.y);
+        if (hor > 0)
+        {
+            Look(Vector2.right);
+            animator.SetBool("isIdle", false);
+            animator.SetBool("isRun", true);
+        }
+
+        if (hor < 0)
+        {
+            Look(Vector2.left);
+            animator.SetBool("isIdle", false);
+            animator.SetBool("isRun", true);
+        }
+
+        if (Mathf.Approximately(rig.velocity.x, 0))
+        {
+            animator.SetBool("isIdle", true);
+            animator.SetBool("isRun", false);
+        }
+
+        v = new Vector2(hor * defaultSpeed, rig.velocity.y);
+        rig.velocity = v;
+        
+    }
+
     void Move()
 	{
         if (moveState != CharState.Cling)
         {
+            hor = Input.GetAxis("Horizontal");
             rig.gravityScale = 1;
-            if (moveState == CharState.WallJumpR)
-            {
-                transform.eulerAngles = new Vector3(0, 180, 0);
-                hor = Input.GetAxis("Horizontal");
-                rig.velocity = new Vector2(defaultSpeed + (hor * 2), rig.velocity.y);
-            }
-            else if (moveState == CharState.WallJumpL)
-            {
-                transform.eulerAngles = new Vector3(0, 0, 0);
-                hor = Input.GetAxis("Horizontal");
-                rig.velocity = new Vector2(-defaultSpeed + (hor * 2), rig.velocity.y);
-            }
+            WallJumpCtrl();
             if (moveState == CharState.Normal)
             {
-                animator.SetBool("isGrounded", isGrounded);
-                animator.SetBool("spacePress", spacePressed);
-                animator.SetFloat("Y", rig.velocity.y);
-                hor = Input.GetAxis("Horizontal");
-                if (hor > 0)
-                {
-                    transform.eulerAngles = new Vector3(0, 180, 0);
-                    animator.SetBool("isIdle", false);
-                    animator.SetBool("isRun", true);
-                }
-
-                if (hor < 0)
-                {
-                    transform.eulerAngles = new Vector3(0, 0, 0);
-                    animator.SetBool("isIdle", false);
-                    animator.SetBool("isRun", true);
-                }
-
-                if (Mathf.Approximately(rig.velocity.x, 0))
-                {
-                    animator.SetBool("isIdle", true);
-                    animator.SetBool("isRun", false);
-                }
-
-                v = new Vector2(hor * defaultSpeed, rig.velocity.y);
-                rig.velocity = v;
+                
+                MoveAndAnim();
+                DetectDash();
+                Jump();
                 if (Input.GetKeyDown(KeyCode.S))
                 {
                     rig.velocity += Vector2.left * 0.001f;
-                }
-
-                DetectDash();
-                Jump();
+                }//충돌 활성화용 코드. 더 나은 방안이 필요.
             } 
         }
     }
@@ -355,14 +368,14 @@ public class PlayerController : MonoBehaviour
 	{
         if (ADash)
 		{
-            StartCoroutine(AfterCtrl());
-            afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+            OnDash.Invoke(transform.eulerAngles.y);
             DDash = false;
 			 rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
             dashTime -= Time.deltaTime;
             declinedDashSpeed /= 1.1f;
             if (dashTime <= 0)
             {
+                Look(Vector2.left);
                 ADash = false;
                 resetD = true;
                 declinedDashSpeed = 1;
@@ -370,15 +383,14 @@ public class PlayerController : MonoBehaviour
         }
         else if (DDash)
         {
-            
-            StartCoroutine(AfterCtrl());
-            afterImage.flip = new Vector3(transform.eulerAngles.y, 0, 0);
+            OnDash.Invoke(transform.eulerAngles.y);
             ADash = false;
             rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
             dashTime -= Time.deltaTime;
             declinedDashSpeed /= 1.1f;
             if (dashTime <= 0)
             {
+                Look(Vector2.right);
                DDash = false;
                 resetA = true;
                 declinedDashSpeed = 1;
@@ -506,6 +518,24 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
+
+    bool DetectCling()
+	{
+        if((Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) 
+            || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
+		{
+            Debug.DrawRay(Feet.position, Vector2.left,Color.cyan);
+            Debug.DrawRay(Feet.position, Vector2.right, Color.cyan);
+            return true;
+		}
+		else
+		{
+            Debug.DrawRay(Feet.position, Vector2.left,Color.red);
+            Debug.DrawRay(Feet.position, Vector2.right,Color.red);
+            return false;
+		}
+
+	}
 	#endregion
 
 	#region IEnumerator
@@ -524,12 +554,7 @@ public class PlayerController : MonoBehaviour
         
 	}
 
-    IEnumerator AfterCtrl()
-	{
-        afterImage.enabled = true;
-        yield return new WaitForSeconds(defaultTime * 1.17f);
-        afterImage.enabled = false;
-	}
+    
 
     IEnumerator DoubleKey()
 	{
@@ -554,17 +579,18 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-		if (col.gameObject.layer == 9 && moveState == CharState.Normal)
+        if (col.gameObject.layer == 9 && moveState == CharState.Normal)
 		{
 			moveState = CharState.StairWalk;
-            
-		}
-		if (col.gameObject.layer == 8 && (Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
+
+        }
+        if(col.gameObject.layer == 8 && !col.otherCollider.CompareTag("CharacterBuffer") && DetectCling())
 		{
+            Debug.Log("Clinged");
             moveState = CharState.Cling;
             rig.velocity = Vector2.zero;
             isJump = false;
-		}
+        }
         else if ((col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable")) && rig.velocity.y <= 0)
         {
             isJump = false;
