@@ -10,12 +10,8 @@ using UnityEngine.UIElements;
 /// <summary>
 /// 현재 수정해야하는 상황 :
 /// 
-/// 간헐적으로 플레이어와 붙잡기벽간의 충돌이 실패함.
-/// 플레이어가 벽에 비비는 행동을 막기 위해 추가한 충돌만 검출이 일어나고 안쪽에 있는 플레이어와 충돌은 발생하지 않음.
-/// 벽에 비비는 행동을 막기 위한 다른 방법을 찾거나, 안쪽 플레이어와의 충돌을 일으킬 방법을 찾아야 함.
 /// 
-/// 플랫폼이펙터를 사용해서 미끄러움을 만드려 했으나, 오른쪽 방향에서의 충돌만 마찰을 무시.
-/// 좌우가 다른 코드가 있는지 확인이 필요. 다른 문제일수도 있음.
+/// 
 /// 
 /// <해결됨> 
 /// P1*붙잡기벽이 위/아래에서도 닿을 수 있을때, 위아래에서 닿은 경우 붙잡기가 활성화.
@@ -82,6 +78,17 @@ using UnityEngine.UIElements;
 /// 이동하다가 대시 -> 슈퍼점프
 /// 대시중 방향전환 -> 슈퍼점프
 /// 
+/// P19*
+/// 간헐적으로 플레이어와 붙잡기벽간의 충돌이 실패함.
+/// 플레이어가 벽에 비비는 행동을 막기 위해 추가한 충돌만 검출이 일어나고 안쪽에 있는 플레이어와 충돌은 발생하지 않음.
+/// 벽에 비비는 행동을 막기 위한 다른 방법을 찾거나, 안쪽 플레이어와의 충돌을 일으킬 방법을 찾아야 함.
+/// 
+/// P20*붙잡기벽에 대시로 접근한 뒤 빠르게 점프 커맨드를 입력하면 벽점프가 일부 먹힘.
+/// 벽점프중 X속도가 간헐적으로 0으로 변화 + 동시에 Y속도가 크게 감소.
+/// 상태에는 문제가 없음.
+/// 벽점프 속도에도 문제는 없음.
+/// 아마도 다른 곳에서 속도가 변하는 듯?
+/// 
 /// 
 /// S1*레이캐스트를 사용해 물체가 있는지에 대해 정보를 판단해서 상태를 결정.
 /// S2*추가 collider를 붙여서 해결. raycast를 사용하기에 별 문제 없었음.
@@ -101,6 +108,8 @@ using UnityEngine.UIElements;
 /// S16*더함.
 /// S17*계단을 올라가는 상태는 항상 바닥에 닿아 있을 것이므로 계단상태에서 바닥에 닿았는지 체크를 항상 TRUE로 함.
 /// S18*대시 종료시 계단에 닿아있다면 Y방향 속도를 초기화함.
+/// S19*모든 일반 벽의 마찰을 0으로 함.
+/// S20*벽에 붙거나 점프를 실행하면 즉시 대시가 취소되게 함.
 /// </해결됨>
 /// 
 /// </summary>
@@ -141,6 +150,7 @@ public class PlayerController : MonoBehaviour
     bool firstKeyPressedD = false;
     bool resetA = false;
     bool resetD = false;
+    bool resetDash = false;
     int dCountChangedAmount = 0;
 	#endregion
 	#region 점프/낙하관련 변수들
@@ -284,6 +294,7 @@ public class PlayerController : MonoBehaviour
 	{
         if (moveState == CharState.Cling)
         {
+            resetDash = false;
             animator.SetBool("isRun", false);
             animator.SetBool("isIdle", false);
             rig.gravityScale = 0;
@@ -295,6 +306,14 @@ public class PlayerController : MonoBehaviour
                 rig.gravityScale = 1;
                 moveState = (int)CharState.Normal;
             }
+			if (rayHitL)
+			{
+                Look(Vector2.left);
+			}
+            else if (rayHitR)
+			{
+                Look(Vector2.right);
+			}
             WallJump();
             WallJumpCancel();
         } // 벽잡은 상태 코드들
@@ -304,14 +323,24 @@ public class PlayerController : MonoBehaviour
 	{
         if (moveState == CharState.WallJumpR)
         {
+            ResetDash();
             Look(Vector2.right);
             rig.velocity = new Vector2(defaultSpeed + hor, rig.velocity.y);
         }
         else if (moveState == CharState.WallJumpL)
-        {
-            Look(Vector2.left);
+		{
+            ResetDash();
+			Look(Vector2.left);
             rig.velocity = new Vector2(-defaultSpeed + hor, rig.velocity.y);
         }
+    }
+
+    void ResetDash()
+	{
+        resetA = true;
+        resetD = true;
+        resetDash = true;
+        dashTime = -1;
     }
 
     void MoveAndAnim()
@@ -366,37 +395,51 @@ public class PlayerController : MonoBehaviour
 
     void Dash()
 	{
-        if (ADash)
+        if(moveState != CharState.WallJumpL && moveState != CharState.WallJumpR)
 		{
-            OnDash.Invoke(transform.eulerAngles.y);
-            DDash = false;
-			 rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
-            dashTime -= Time.deltaTime;
-            declinedDashSpeed /= 1.1f;
-            if (dashTime <= 0)
+            if (ADash)
             {
-                Look(Vector2.left);
-                ADash = false;
-                resetD = true;
-                declinedDashSpeed = 1;
+                if (dashTime <= 0 || resetDash)
+                {
+                    
+                    ADash = false;
+                    resetD = true;
+                    declinedDashSpeed = 1;
+                }
+				if (ADash)
+				{
+                    Look(Vector2.left);
+                    OnDash.Invoke(transform.eulerAngles.y);
+                    DDash = false;
+                    rig.AddForce(Vector2.left * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
+                    dashTime -= Time.deltaTime;
+                    declinedDashSpeed /= 1.1f;
+                }
+            }
+            else if (DDash)
+            {
+                if (dashTime <= 0 || resetDash)
+                {
+                    
+                    DDash = false;
+                    resetA = true;
+                    declinedDashSpeed = 1;
+                }
+				if (DDash)
+				{
+                    Look(Vector2.right);
+                    OnDash.Invoke(transform.eulerAngles.y);
+                    ADash = false;
+                    rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
+                    dashTime -= Time.deltaTime;
+                    declinedDashSpeed /= 1.1f;
+                }
+                
+                
+
             }
         }
-        else if (DDash)
-        {
-            OnDash.Invoke(transform.eulerAngles.y);
-            ADash = false;
-            rig.AddForce(Vector2.right * dashPower * declinedDashSpeed, ForceMode2D.Impulse);
-            dashTime -= Time.deltaTime;
-            declinedDashSpeed /= 1.1f;
-            if (dashTime <= 0)
-            {
-                Look(Vector2.right);
-               DDash = false;
-                resetA = true;
-                declinedDashSpeed = 1;
-            }
-            
-        }
+        
         
 	}
 
@@ -404,6 +447,7 @@ public class PlayerController : MonoBehaviour
     {
         if(DashCount > 0 && !ADash && !DDash)
 		{
+            resetDash =false;
             if (Input.GetKeyDown(KeyCode.A) && firstKeyPressedA)
             {
                 
@@ -468,6 +512,7 @@ public class PlayerController : MonoBehaviour
             rig.gravityScale = 1;
             if (rayHitR.transform != null) //오른쪽에 물체
             {
+                
                 moveState = CharState.WallJumpL;
             }
             else if(rayHitL.transform != null) //왼쪽에 물체
@@ -519,21 +564,15 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    bool DetectCling()
+    void DetectCling()
 	{
-        if((Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) 
-            || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer)))
-		{
-            Debug.DrawRay(Feet.position, Vector2.left,Color.cyan);
-            Debug.DrawRay(Feet.position, Vector2.right, Color.cyan);
-            return true;
-		}
-		else
-		{
-            Debug.DrawRay(Feet.position, Vector2.left,Color.red);
-            Debug.DrawRay(Feet.position, Vector2.right,Color.red);
-            return false;
-		}
+        if(Physics2D.Raycast(Feet.position, Vector2.left, rayLen, ignoreLayer) 
+            || Physics2D.Raycast(Feet.position, Vector2.right, rayLen, ignoreLayer))
+        {
+            moveState = CharState.Cling;
+            rig.velocity = Vector2.zero;
+            isJump = false;
+        }
 
 	}
 	#endregion
@@ -584,12 +623,10 @@ public class PlayerController : MonoBehaviour
 			moveState = CharState.StairWalk;
 
         }
-        if(col.gameObject.layer == 8 && !col.otherCollider.CompareTag("CharacterBuffer") && DetectCling())
+        if(col.gameObject.layer == 8)
 		{
-            Debug.Log("Clinged");
-            moveState = CharState.Cling;
-            rig.velocity = Vector2.zero;
-            isJump = false;
+            DetectCling();
+            
         }
         else if ((col.gameObject.CompareTag("Ground") || col.gameObject.CompareTag("Fallable")) && rig.velocity.y <= 0)
         {
@@ -601,7 +638,7 @@ public class PlayerController : MonoBehaviour
 
 	private void OnCollisionStay2D(Collision2D collision)
 	{
-        if (sPressed && spacePressed )
+        if (sPressed && spacePressed && moveState == CharState.Normal)
         {
             StartCoroutine(CollisionOn());
         }
