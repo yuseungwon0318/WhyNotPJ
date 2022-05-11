@@ -13,8 +13,9 @@ GameObject:
   - component: {fileID: 6831994616933981652}
   - component: {fileID: 6831994616933981653}
   - component: {fileID: -648353916303485180}
+  - component: {fileID: -8614720081808148916}
   - component: {fileID: -6233996805695831287}
-  m_Layer: 11
+  m_Layer: 8
   m_Name: Larva
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135,20 +136,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73362a04bce30b04284273d0170db77b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  healthPoint: 10
+  speed: 2
+  enemyHp: 1
   detectSize: {x: 10, y: 1}
   attackSize: {x: 5, y: 1}
   layer:
     serializedVersion: 2
     m_Bits: 128
-  isAttack: 0
-  speed: 2
-  attackPower: 0
-  curSkillGauge: 0
-  maxSkillGauge: 10
-  upSkillGauge: 0.2
-  attackTime: 0.5
-  initialAngle: 30
+--- !u!114 &-8614720081808148916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6831994616933981658}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acb14e341dd95dc4caca3db968f5964c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!95 &-6233996805695831287
 Animator:
   serializedVersion: 3
