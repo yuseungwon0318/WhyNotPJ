@@ -50,7 +50,6 @@ public class PlayerController : MonoBehaviour
     public float defaultTime;
     public float jumpPower;
     public float playerHp = 1;
-    public GameObject playerAttackRangeSpawner;
     public Transform player;
     #endregion
     #region private ÄÄÆ÷³ÍÆ®

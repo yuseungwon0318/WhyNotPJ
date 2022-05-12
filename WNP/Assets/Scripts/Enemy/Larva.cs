@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-public class Larva : MonoBehaviour, IEnemyInterface
+/// <summary>
+/// Slerf 기능 조사 예정
+/// </summary>
+public class Larva : MonoBehaviour
 {
     Vector3 dir;
     GameObject target;
@@ -11,7 +13,7 @@ public class Larva : MonoBehaviour, IEnemyInterface
     Collider2D detect;
     Collider2D attack;
     public static Larva Instance = null;
-    public float enemyHp;
+    public float enemyHp = 1f;
     public float attackPower = 0.2f;
     [SerializeField] private bool isAttack;
     [SerializeField] private float speed = 2;
@@ -20,16 +22,6 @@ public class Larva : MonoBehaviour, IEnemyInterface
     [SerializeField] private LayerMask layer;
     [SerializeField] private float currentAttackTime = 0;
     [SerializeField] private float attackTime = 0.5f;
-
-    public void Damage(float playerAttackPower)
-    {
-        enemyHp -= playerAttackPower;
-
-        if (enemyHp <= 0.001)
-        {
-            Destroy(gameObject);
-        }
-    }
 
     private void Awake()
     {
@@ -71,6 +63,11 @@ public class Larva : MonoBehaviour, IEnemyInterface
         dir.Normalize();
 
         currentAttackTime += Time.deltaTime;
+
+        if (enemyHp < 0.001)
+        {
+            Destroy(gameObject);
+        }
 
         EnemyDetect();
         EnemyAttack();
