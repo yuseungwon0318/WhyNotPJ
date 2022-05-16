@@ -160,12 +160,12 @@ TextureImporter:
       name: Monster_larva_move_3
       rect:
         serializedVersion: 2
-        x: 720
+        x: 724
         y: 0
         width: 220
         height: 110
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.45454547}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
