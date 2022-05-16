@@ -41,7 +41,7 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     #region public º¯¼ö
-    public static PlayerController Instance = null;
+    public static PlayerController Instance;
     public float hor;
 	public float DashGap;
     public float speed;
@@ -83,10 +83,7 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
+        Instance = this;
     }
 
     void Start()
