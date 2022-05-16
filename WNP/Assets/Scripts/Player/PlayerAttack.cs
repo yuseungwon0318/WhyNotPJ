@@ -42,7 +42,10 @@ public class PlayerAttack : MonoBehaviour
             onRight = false;
         }
 
-        Attack();
+        if (attack)
+        {
+            Attack();
+        }
     }
 
     void Attack()
@@ -58,7 +61,7 @@ public class PlayerAttack : MonoBehaviour
 
         if (Input.GetMouseButton(0) && isAttack == true)
         {
-            attack.GetComponent<Larva>().enemyHp -= attackPower;
+            attack.GetComponent<Larva>().healthPoint -= attackPower;
         }
     }
 }

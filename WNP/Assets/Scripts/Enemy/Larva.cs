@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
-/// Slerf 기능 조사 예정
+/// Slerp 정상 작동하게 만들기
+/// 애니메이션 부여해서 공격 준비 시간 만들기
+/// 평타 및 스킬 애니메이션 넣기
 /// </summary>
 public class Larva : MonoBehaviour
 {
@@ -12,23 +14,22 @@ public class Larva : MonoBehaviour
     SpriteRenderer spriteRenderer;
     Collider2D detect;
     Collider2D attack;
-    public static Larva Instance = null;
-    public float enemyHp = 1f;
-    public float attackPower = 0.2f;
+    public static Larva Instance;
+    public float healthPoint;
     [SerializeField] private bool isAttack;
-    [SerializeField] private float speed = 2;
+    [SerializeField] private float speed;
+    [SerializeField] private float attackPower;
+    [SerializeField] private float curSkillGauge;
+    [SerializeField] private float maxSkillGauge;
     [SerializeField] private Vector2 detectSize;
     [SerializeField] private Vector2 attackSize;
     [SerializeField] private LayerMask layer;
-    [SerializeField] private float currentAttackTime = 0;
-    [SerializeField] private float attackTime = 0.5f;
+    [SerializeField] private float curAttackTime = 0;
+    [SerializeField] private float attackTime;
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
+        Instance = this;
     }
 
     void Start()
@@ -62,15 +63,19 @@ public class Larva : MonoBehaviour
 
         dir.Normalize();
 
-        currentAttackTime += Time.deltaTime;
+        curAttackTime += Time.deltaTime;
 
-        if (enemyHp < 0.001)
+        if (healthPoint < 0.001)
         {
             Destroy(gameObject);
         }
 
         EnemyDetect();
-        EnemyAttack();
+
+        if (attack)
+        {
+            EnemyAttack();
+        }
     }
 
     private void EnemyDetect()
@@ -86,7 +91,20 @@ public class Larva : MonoBehaviour
                 spriteRenderer.flipX = false;
             }
 
-            transform.position += dir * speed * Time.deltaTime;
+            if (curSkillGauge < maxSkillGauge)
+            {
+                transform.position += dir * speed * Time.deltaTime;
+                curSkillGauge += 0.01f * Time.deltaTime;
+            }
+            else
+            {
+                transform.position = Vector3.Slerp(transform.position, target.transform.position, 0.05f);
+
+                if (attack.gameObject.layer == 7)
+                {
+                    curSkillGauge = 0;
+                }
+            }
 
             animator.SetBool("Monster_larva_move", true);
         }
@@ -109,11 +127,13 @@ public class Larva : MonoBehaviour
 
         if (isAttack == true)
         {
-            if (currentAttackTime > attackTime)
+            if (curAttackTime > attackTime)
             {
                 target.GetComponent<PlayerController>().playerHp -= attackPower;
 
-                currentAttackTime = 0;
+                curSkillGauge += 2f;
+
+                curAttackTime = 0;
             }
         }
     }
