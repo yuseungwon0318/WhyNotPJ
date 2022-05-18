@@ -228,16 +228,24 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -648353916303485180, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
-      propertyPath: attackPower
-      value: 0
+      propertyPath: Projectile
+      value: 
+      objectReference: {fileID: 2009132431}
+    - target: {fileID: -648353916303485180, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
+      propertyPath: attackTime
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: -648353916303485180, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
-      propertyPath: maxSkillGauge
-      value: 5
+      propertyPath: firingAngle
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: -648353916303485180, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
+      propertyPath: initialAngle
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 6831994616933981654, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
       propertyPath: m_RootOrder
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6831994616933981654, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
       propertyPath: m_LocalPosition.x
@@ -325,7 +333,7 @@ MonoBehaviour:
   dashPower: 9
   defaultTime: 0.25
   jumpPower: 10
-  playerHp: 1
+  playerHp: 10
   player: {fileID: 1208172250}
   isFall: 0
   fallchanged: 0
@@ -467,8 +475,9 @@ MonoBehaviour:
   layer:
     serializedVersion: 2
     m_Bits: 2048
-  attackPower: 0.2
   isAttack: 0
+  attackPower: 0.2
+  attackTime: 0.5
 --- !u!1 &1489978251
 GameObject:
   m_ObjectHideFlags: 0
@@ -636,7 +645,7 @@ Transform:
   m_LocalScale: {x: 21.039045, y: 0.5281, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1832805921
 GameObject:
@@ -783,3 +792,8 @@ MonoBehaviour:
   ignoreLayer: 7
   myPlat: {fileID: 0}
   pc: {fileID: 1208172246}
+--- !u!4 &2009132431 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6831994616933981654, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
+  m_PrefabInstance: {fileID: 825745549}
+  m_PrefabAsset: {fileID: 0}

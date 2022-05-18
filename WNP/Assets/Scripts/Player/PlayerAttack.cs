@@ -1,18 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-/// <summary>
-/// 코루틴으로 공격 쿨타임 만들고 Larva 공격 쿨타임도 코루틴으로 변경 예정
-/// </summary>
+
 public class PlayerAttack : MonoBehaviour
 {
     Collider2D attack;
     [SerializeField] private Vector2 size;
     [SerializeField] private LayerMask layer;
-    public float attackPower = 0.2f;
-    public bool isAttack = false;
-    bool onLeft = false;
-    bool onRight = false;
+    [SerializeField] private bool isAttack = false;
+    [SerializeField] private float attackPower;
+    [SerializeField] private float attackTime;
+    private bool onLeft = false;
+    private bool onRight = false;
 
     private void OnDrawGizmos()
     {
@@ -50,18 +49,17 @@ public class PlayerAttack : MonoBehaviour
 
     void Attack()
     {
-        if (attack.gameObject.layer == 11)
+        if ((attack.gameObject.layer == 11 && Input.GetMouseButton(0)) && isAttack == false)
         {
             isAttack = true;
+            StartCoroutine(AttackDelay());
         }
-        else
-        {
-            isAttack = false;
-        }
+    }
 
-        if (Input.GetMouseButton(0) && isAttack == true)
-        {
-            attack.GetComponent<Larva>().healthPoint -= attackPower;
-        }
+    IEnumerator AttackDelay()
+    {
+        attack.GetComponent<Larva>().healthPoint -= attackPower;
+        yield return new WaitForSeconds(attackTime);
+        isAttack = false;
     }
 }
