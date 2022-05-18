@@ -8,14 +8,14 @@ public class PlayerFeet : MonoBehaviour
 	{
 		if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Fallable"))
 		{
-			PlayerController.isGrounded = true;
+			PlayerController.Instance.isGrounded = true;
 		}
 	}
 	private void OnTriggerExit2D(Collider2D collision)
 	{
 		if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Fallable"))
 		{
-			PlayerController.isGrounded = false;
+			PlayerController.Instance.isGrounded = false;
 		}
 	}
 }
