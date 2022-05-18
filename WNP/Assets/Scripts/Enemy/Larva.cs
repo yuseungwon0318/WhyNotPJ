@@ -147,15 +147,14 @@ public class Larva : MonoBehaviour
         animator.ResetTrigger("NormalAttack");
         yield return new WaitForSeconds(2);
 
-        Vector3 velocity = GetVelocity(transform.position, target.transform.position, initialAngle);
-        rig.velocity = velocity;
+        StartCoroutine(GetVelocity(transform.position, target.transform.position, initialAngle));
 
         target.GetComponent<PlayerController>().playerHp -= attackPower * 10;
         curSkillGauge = 0;
         isAttack = false;
     }
 
-    public Vector3 GetVelocity(Vector3 player, Vector3 target, float initialAngle)
+    IEnumerator GetVelocity(Vector3 player, Vector3 target, float initialAngle)
     {
         animator.SetTrigger("Attack");
         animator.ResetTrigger("AttackPrepare");
@@ -175,7 +174,9 @@ public class Larva : MonoBehaviour
 
         float angleBetweenObjects = Vector3.Angle(Vector3.forward, planarTarget - planarPosition) * (target.x > player.x ? 1 : -1);
         Vector3 finalVelocity = Quaternion.AngleAxis(angleBetweenObjects, Vector3.up) * velocity;
+        rig.velocity = finalVelocity;
 
-        return finalVelocity;
+        yield return new WaitForSeconds(0);
+
     }
 }
