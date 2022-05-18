@@ -147,35 +147,38 @@ public class Larva : MonoBehaviour
         animator.ResetTrigger("NormalAttack");
         yield return new WaitForSeconds(2);
 
-        Vector3 velocity = GetVelocity(transform.position, target.transform.position, initialAngle);
-        rig.velocity = velocity;
+        StartCoroutine(GetVelocity(transform.position, initialAngle));
 
         target.GetComponent<PlayerController>().playerHp -= attackPower * 10;
         curSkillGauge = 0;
         isAttack = false;
     }
 
-    public Vector3 GetVelocity(Vector3 player, Vector3 target, float initialAngle)
+    IEnumerator GetVelocity(Vector3 player, float initialAngle)
     {
+        Vector3 targetV = target.transform.position;
+
         animator.SetTrigger("Attack");
         animator.ResetTrigger("AttackPrepare");
 
         float gravity = Physics.gravity.magnitude;
         float angle = initialAngle * Mathf.Deg2Rad;
 
-        Vector3 planarTarget = new Vector3(target.x, 0, target.z);
+        Vector3 planarTarget = new Vector3(targetV.x, 0, targetV.z);
         Vector3 planarPosition = new Vector3(player.x, 0, player.z);
 
         float distance = Vector3.Distance(planarTarget, planarPosition);
-        float yOffset = player.y - target.y;
+        float yOffset = player.y - targetV.y;
 
         float initialVelocity = (1 / Mathf.Cos(angle)) * Mathf.Sqrt((0.5f * gravity * Mathf.Pow(distance, 2)) / (distance * Mathf.Tan(angle) + yOffset));
 
         Vector3 velocity = new Vector3(0f, initialVelocity * Mathf.Sin(angle), initialVelocity * Mathf.Cos(angle));
 
-        float angleBetweenObjects = Vector3.Angle(Vector3.forward, planarTarget - planarPosition) * (target.x > player.x ? 1 : -1);
+        float angleBetweenObjects = Vector3.Angle(Vector3.forward, planarTarget - planarPosition) * (targetV.x > player.x ? 1 : -1);
         Vector3 finalVelocity = Quaternion.AngleAxis(angleBetweenObjects, Vector3.up) * velocity;
 
-        return finalVelocity;
+        rig.velocity = finalVelocity;
+
+        yield return new WaitForSeconds(0);
     }
 }
