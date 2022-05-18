@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 /// <summary>
-/// 색조합 메커니즘 구상. 조건 도배하면 간략하지 못함.
-/// skillroot 확정시키기.
-/// 자료구조 생각해보기.
-/// 스킬 사용 구현 대충
+/// 스킬의 기본 클래스
+/// 모든 스킬은 이것을 상속함.
+/// 액티브/패시브 스킬이 있을 예정.
 /// </summary>
 public class SkillBasic
 {

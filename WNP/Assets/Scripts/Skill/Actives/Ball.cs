@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 
-public class Ball : Skills, IUsable
+public class Ball : ActiveSkillBasic //볼은 사용 가능한 스킬이기에 IUsable을 상속.
 {
-	public void Use()
+	public AutoMove ESphere;
+	public override void Use()
 	{
-
+		Instantiate(ESphere, transform.position, Quaternion.identity);
 	}
 }
