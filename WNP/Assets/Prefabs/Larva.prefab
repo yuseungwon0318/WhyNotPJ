@@ -146,6 +146,7 @@ MonoBehaviour:
   attackPower: 0
   curSkillGauge: 0
   maxSkillGauge: 10
+  upSkillGauge: 0.2
   attackTime: 0.5
   initialAngle: 30
 --- !u!95 &-6233996805695831287

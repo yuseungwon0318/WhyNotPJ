@@ -25,6 +25,7 @@ public class Larva : MonoBehaviour
     [SerializeField] private float attackPower;
     [SerializeField] private float curSkillGauge;
     [SerializeField] private float maxSkillGauge;
+    [SerializeField] private float upSkillGauge;
     [SerializeField] private float attackTime;
 
     public float initialAngle;
@@ -110,7 +111,7 @@ public class Larva : MonoBehaviour
     {
         if (attack && attack.gameObject.layer == 7)
         {
-            curSkillGauge += 0.01f * Time.deltaTime;
+            curSkillGauge += upSkillGauge * Time.deltaTime;
 
             if (curSkillGauge < maxSkillGauge && isAttack == false)
             {
@@ -124,6 +125,7 @@ public class Larva : MonoBehaviour
         {
             isAttack = true;
             StartCoroutine(Attack());
+            curSkillGauge = 0;
         }
     }
 
@@ -134,7 +136,7 @@ public class Larva : MonoBehaviour
         animator.ResetTrigger("Move");
         animator.ResetTrigger("Attack");
         target.GetComponent<PlayerController>().playerHp -= attackPower;
-        curSkillGauge += 2f;
+        curSkillGauge += upSkillGauge;
         yield return new WaitForSeconds(attackTime);
         isAttack = false;
     }
@@ -150,7 +152,6 @@ public class Larva : MonoBehaviour
         StartCoroutine(GetVelocity(transform.position, target.transform.position, initialAngle));
 
         target.GetComponent<PlayerController>().playerHp -= attackPower * 10;
-        curSkillGauge = 0;
         isAttack = false;
     }
 
