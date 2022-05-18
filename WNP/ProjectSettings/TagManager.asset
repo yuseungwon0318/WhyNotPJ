@@ -6,7 +6,6 @@ TagManager:
   tags:
   - Ground
   - Fallable
-  - CharacterBuffer
   layers:
   - Default
   - TransparentFX
@@ -16,10 +15,10 @@ TagManager:
   - UI
   - FallableP
   - Controlable
-  - Stickable
-  - Stair
-  - Ground
-  - Enemy
+  - 
+  - 
+  - 
+  - 
   - 
   - 
   - 
