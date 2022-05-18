@@ -136,18 +136,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   healthPoint: 10
-  isAttack: 0
-  speed: 2
-  attackPower: 0.2
-  curSkillGauge: 0
-  maxSkillGauge: 2
   detectSize: {x: 10, y: 1}
   attackSize: {x: 5, y: 1}
   layer:
     serializedVersion: 2
     m_Bits: 128
-  curAttackTime: 0
+  isAttack: 0
+  speed: 2
+  attackPower: 0
+  curSkillGauge: 0
+  maxSkillGauge: 10
   attackTime: 0.5
+  initialAngle: 30
 --- !u!95 &-6233996805695831287
 Animator:
   serializedVersion: 3
