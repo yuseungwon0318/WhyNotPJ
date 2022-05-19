@@ -5,11 +5,13 @@ using UnityEngine;
 public class PlayerAttack : MonoBehaviour
 {
     Collider2D attack;
+    Animator attackAnim;
     [SerializeField] private Vector2 size;
     [SerializeField] private LayerMask layer;
     [SerializeField] private bool isAttack = false;
     [SerializeField] private float attackPower;
     [SerializeField] private float attackTime;
+    
     private bool onLeft = false;
     private bool onRight = false;
 
@@ -26,7 +28,12 @@ public class PlayerAttack : MonoBehaviour
         }
     }
 
-    private void Update()
+
+	private void Awake()
+	{
+		attackAnim = GetComponent<Animator>();
+	}
+	private void Update()
     {
         if (PlayerController.Instance.hor > 0 || (PlayerController.Instance.hor == 0 && onRight == true))
         {
@@ -41,7 +48,12 @@ public class PlayerAttack : MonoBehaviour
             onRight = false;
         }
 
-        if (attack)
+        if(Input.GetMouseButtonDown(0) && !isAttack)
+		{
+            attackAnim.SetTrigger("IsAttack");
+        }
+
+        if (attack && Input.GetMouseButtonDown(0))
         {
             Attack();
         }
@@ -49,8 +61,9 @@ public class PlayerAttack : MonoBehaviour
 
     void Attack()
     {
-        if ((attack.gameObject.layer == 11 && Input.GetMouseButton(0)) && isAttack == false)
+        if ((attack.gameObject.layer == 11 ) && !isAttack )
         {
+            
             isAttack = true;
             StartCoroutine(AttackDelay());
         }

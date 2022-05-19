@@ -26,9 +26,10 @@ public interface IColored
 		Goblin, //적녹 + 청녹
 		EastBay, //적청 + 청녹
 				 //검정
-		Black
+		Black,
+
+		Max //최대치 용도. 랜덤이나 리스트 만들기에 사용.
 	}
-	public void Init();
-	public ColorCodes MixColor(ColorCodes Base, ColorCodes Catalyst);
-	public ColorCodes Replace(ColorCodes Catalyst);
+	public bool MixColor(ColorCodes baseC, ColorCodes catalyst, out ColorCodes result); //가불가블 반환. 이걸로 조건 판단.
+	public bool Replace(ColorCodes catalyst, out ColorCodes result);
 }
