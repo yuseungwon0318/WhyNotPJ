@@ -40,6 +40,7 @@ public sealed class ColorBasic
 	public static List<Colors> allColors = new List<Colors>()
 	{
 		new Colors(IColored.ColorCodes.White),
+
 		new Colors(IColored.ColorCodes.Red),
 		new Colors(IColored.ColorCodes.Green),
 		new Colors(IColored.ColorCodes.Blue),

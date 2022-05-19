@@ -17,9 +17,6 @@ using UnityEngine.UIElements;
 /// 비율이 해당 비율과 같은 색을 색 사전에서 찾는다.
 /// 없다면 null을 반환한다. (불가능으로 취급하여 )
 /// 있다면 해당 색을 반환한다.
-/// 
-/// 색 합성의 경우 (버전 2) : 
-/// 두 색의 차수를 얻은 뒤 만일 같다면 합성을 진행한다.
 /// </summary>
 
 public abstract class ActiveSkillBasic : MonoBehaviour, IUsable, IColored//모든 액티브 스킬엔 색이 들어감.
@@ -44,28 +41,33 @@ public abstract class ActiveSkillBasic : MonoBehaviour, IUsable, IColored//모든 
 
 	public bool MixColor(IColored.ColorCodes baseColor, IColored.ColorCodes catalyst, out IColored.ColorCodes result)
 	{ 
-		IColored.ColorCodes resultColor = IColored.ColorCodes.None;
-		if(baseColor == IColored.ColorCodes.Black ) //여기에 버전에 따른 조건을 넣기.
+		int multipler;
+		Vector3 newColorRatio;
+		if(ColorBasic.allColors[(int)baseColor].colorDimention > ColorBasic.allColors[(int)catalyst].colorDimention)
+		{
+			multipler = ColorBasic.allColors[(int)baseColor].colorDimention/ ColorBasic.allColors[(int)catalyst].colorDimention;
+			newColorRatio = ColorBasic.allColors[(int)baseColor].colorRatio + (ColorBasic.allColors[(int)catalyst].colorRatio * multipler);
+		}
+		else
+		{
+			multipler = ColorBasic.allColors[(int)catalyst].colorDimention / ColorBasic.allColors[(int)baseColor].colorDimention;
+			newColorRatio = ColorBasic.allColors[(int)catalyst].colorRatio + ColorBasic.allColors[(int)baseColor].colorRatio * multipler;
+		}
+		//여기서 약분?
+		IColored.ColorCodes? newColor = ColorBasic.allColors.Find(item => item.colorRatio == newColorRatio).colorCodes;
+		if(baseColor == IColored.ColorCodes.Black || newColor == null) //검은색은 색을 더 섞을 수 없음. 동일한 비율의 색이 존재하지 않는다면 섞을 수 없음.
 		{
 			result = baseColor;
 			return false;
 		}
-			
 
-		result = resultColor;
+		result = (IColored.ColorCodes)newColor;
 
 		return true;
 	}
-	public bool Replace(IColored.ColorCodes change, out IColored.ColorCodes result)
+	public IColored.ColorCodes Replace(IColored.ColorCodes change)
 	{
-		if(IColored.ColorCodes.Black != change) 
-			//여기에 버전에 따른 조건을 넣기. 아마도 스킬의 차수를 비교할 것이 필요할 것이고, 스킬을 Colors와 같이 만들어야 할 듯.
-		{
-			result = IColored.ColorCodes.Black;
-			return false;
-		}
-		result = change;
-		return true;
+		return change;
 	}
 
 }

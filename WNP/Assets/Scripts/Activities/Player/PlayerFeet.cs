@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -7,7 +8,7 @@ public class PlayerFeet : MonoBehaviour
 {
 	public float rad = 0.3f;
 	public LayerMask ignoreLayer;
-	Collider2D feetCol;
+	List<Collider2D>  feetCol;
 	private void Start()
 	{
 		ignoreLayer = ~ignoreLayer;
@@ -15,12 +16,13 @@ public class PlayerFeet : MonoBehaviour
 	private void Update()
 	{
 		
-		feetCol = Physics2D.OverlapCapsule(transform.position, new Vector2(1,1f), CapsuleDirection2D.Horizontal,0, ignoreLayer);
-		if (!feetCol)
+		feetCol = 
+			Physics2D.OverlapCapsuleAll(transform.position, new Vector2(1,1f), CapsuleDirection2D.Horizontal,0, ignoreLayer).ToList();
+		if (feetCol == null)
 		{
 			PlayerController.Instance.isGrounded = false;
 		}
-		else if ((feetCol.CompareTag("Ground") || feetCol.CompareTag("Fallable")) && Approximate(PlayerController.Instance.rig.velocity.y, 0, 0.2f))
+		else if (feetCol.Exists(item => {return item.CompareTag("Fallable") || item.CompareTag("Ground");} ) && Approximate(PlayerController.Instance.rig.velocity.y, 0, 0.2f))
 		{
 			PlayerController.Instance.isGrounded = true;
 		}

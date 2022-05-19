@@ -31,5 +31,5 @@ public interface IColored
 		Max //최대치 용도. 랜덤이나 리스트 만들기에 사용.
 	}
 	public bool MixColor(ColorCodes baseC, ColorCodes catalyst, out ColorCodes result); //가불가블 반환. 이걸로 조건 판단.
-	public bool Replace(ColorCodes catalyst, out ColorCodes result);
+	public ColorCodes Replace(ColorCodes catalyst);
 }
