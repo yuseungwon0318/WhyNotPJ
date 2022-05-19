@@ -3969,7 +3969,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 701435217}
-  m_Layer: 10
+  m_Layer: 0
   m_Name: Normals
   m_TagString: Ground
   m_Icon: {fileID: 0}
@@ -4338,7 +4338,7 @@ GameObject:
   - component: {fileID: 1037310503}
   - component: {fileID: 1037310505}
   - component: {fileID: 1037310504}
-  m_Layer: 10
+  m_Layer: 9
   m_Name: GroundFloor (4)
   m_TagString: Ground
   m_Icon: {fileID: 0}
@@ -4597,13 +4597,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1208172245}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.7, y: -1.2, z: 0}
+  m_LocalPosition: {x: 4, y: 8.9, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1489978252}
   - {fileID: 1410069050}
   m_Father: {fileID: 0}
-  m_RootOrder: 8
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &1208172251
 Animator:
@@ -9656,6 +9656,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 229330251ed9fc64c86eff1a274a5420, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  rad: 0.5
+  ignoreLayer:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &1545042132
 GameObject:
   m_ObjectHideFlags: 0
@@ -10631,7 +10635,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2082236786}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Fallables
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -10652,5 +10656,5 @@ Transform:
   - {fileID: 232394707}
   - {fileID: 729773954}
   m_Father: {fileID: 0}
-  m_RootOrder: 7
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
