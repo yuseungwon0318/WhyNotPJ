@@ -4,7 +4,8 @@ using UnityEngine;
 /// <summary>
 /// 공격 도착 지점 고정하기
 /// 애니메이션 타이밍 조정하기
-/// 스킬 게이지 4 더해지는 거 수정
+/// 스킬 공격 재구현
+/// 상태(State) 구현
 /// </summary>
 public class Larva : MonoBehaviour
 {
@@ -28,7 +29,14 @@ public class Larva : MonoBehaviour
     [SerializeField] private float upSkillGauge;
     [SerializeField] private float attackTime;
 
-    public float initialAngle;
+    public enum State : short
+    {
+        Idle = 0,
+        Move = 1,
+        NormalAttack = 2,
+        AttackPrepare = 3,
+        Attack = 4
+    }
 
     private void Awake()
     {
@@ -40,7 +48,6 @@ public class Larva : MonoBehaviour
         target = GameObject.Find("Player");
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
-        rig = GetComponent<Rigidbody2D>();
 
         if (target.transform.position.x >= transform.position.x)
         {
@@ -72,8 +79,16 @@ public class Larva : MonoBehaviour
             Destroy(gameObject);
         }
 
-        EnemyDetect();
-        EnemyAttack();
+        if (curSkillGauge >= maxSkillGauge)
+        {
+            isAttack = true;
+            StartCoroutine(Attack());
+        }
+        else
+        {
+            EnemyDetect();
+            EnemyAttack();
+        }
     }
 
     private void EnemyDetect()
@@ -116,16 +131,9 @@ public class Larva : MonoBehaviour
             if (curSkillGauge < maxSkillGauge && isAttack == false)
             {
                 isAttack = true;
+
                 StartCoroutine(NormalAttackDelay());
-
             }
-        }
-
-        if (curSkillGauge >= maxSkillGauge)
-        {
-            isAttack = true;
-            StartCoroutine(Attack());
-            curSkillGauge = 0;
         }
     }
 
@@ -135,9 +143,12 @@ public class Larva : MonoBehaviour
         animator.ResetTrigger("Idle");
         animator.ResetTrigger("Move");
         animator.ResetTrigger("Attack");
+
         target.GetComponent<PlayerController>().playerHp -= attackPower;
         curSkillGauge += upSkillGauge;
+
         yield return new WaitForSeconds(attackTime);
+
         isAttack = false;
     }
 
@@ -147,37 +158,25 @@ public class Larva : MonoBehaviour
         animator.ResetTrigger("Idle");
         animator.ResetTrigger("Move");
         animator.ResetTrigger("NormalAttack");
+
         yield return new WaitForSeconds(2);
 
-        StartCoroutine(GetVelocity(transform.position, target.transform.position, initialAngle));
-
-        target.GetComponent<PlayerController>().playerHp -= attackPower * 10;
-        isAttack = false;
-    }
-
-    IEnumerator GetVelocity(Vector3 player, Vector3 target, float initialAngle)
-    {
         animator.SetTrigger("Attack");
         animator.ResetTrigger("AttackPrepare");
 
-        float gravity = Physics.gravity.magnitude;
-        float angle = initialAngle * Mathf.Deg2Rad;
+        Jump();
 
-        Vector3 planarTarget = new Vector3(target.x, 0, target.z);
-        Vector3 planarPosition = new Vector3(player.x, 0, player.z);
+        target.GetComponent<PlayerController>().playerHp -= attackPower * 10;
 
-        float distance = Vector3.Distance(planarTarget, planarPosition);
-        float yOffset = player.y - target.y;
+        curSkillGauge = 0;
 
-        float initialVelocity = (1 / Mathf.Cos(angle)) * Mathf.Sqrt((0.5f * gravity * Mathf.Pow(distance, 2)) / (distance * Mathf.Tan(angle) + yOffset));
+        yield return new WaitForSeconds(attackTime);
 
-        Vector3 velocity = new Vector3(0f, initialVelocity * Mathf.Sin(angle), initialVelocity * Mathf.Cos(angle));
+        isAttack = false;
+    }
 
-        float angleBetweenObjects = Vector3.Angle(Vector3.forward, planarTarget - planarPosition) * (target.x > player.x ? 1 : -1);
-        Vector3 finalVelocity = Quaternion.AngleAxis(angleBetweenObjects, Vector3.up) * velocity;
-        rig.velocity = finalVelocity;
-
-        yield return new WaitForSeconds(0);
-
+    private void Jump()
+    {
+        //애니메이션 커브로 구현 예정
     }
 }
