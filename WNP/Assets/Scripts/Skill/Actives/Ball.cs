@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 
-public class Ball : ActiveSkillBasic //볼은 사용 가능한 스킬이기에 IUsable을 상속.
+public class Ball : ActiveSkillBasic
 {
-	public AutoMove ESphere;
+	AutoMove ESphere;
 
-	public void Awake()
+	public override void Init()
 	{
+		SkillInfo = SkillBasic.AllSkills[((int)SkillBasic.SkillCodes.Ball)];
+		ColorInfo = ColorBasic.AllColors[((int)IColored.ColorCodes.White)];
 		ESphere = Resources.Load<AutoMove>("Skill/Ball");
 	}
 
 	public override void Use()
-	{
+	{																																																																																									
 		Instantiate(ESphere, transform.position, Quaternion.identity);
 	}
 }

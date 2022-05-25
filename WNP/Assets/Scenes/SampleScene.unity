@@ -3387,8 +3387,12 @@ PrefabInstance:
       value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: -648353916303485180, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
+      propertyPath: upSkillGauge
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -648353916303485180, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
       propertyPath: curSkillGauge
-      value: 2
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 6831994616933981654, guid: 9ba1c1bef80656e4bae6d1bca878bcdb, type: 3}
       propertyPath: m_RootOrder
@@ -4022,7 +4026,7 @@ BoxCollider2D:
   m_GameObject: {fileID: 612788213}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: b5e7b216ac7f3694a9b953d2a764a252, type: 2}
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
@@ -4566,6 +4570,49 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &1052864082
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1052864084}
+  - component: {fileID: 1052864083}
+  m_Layer: 0
+  m_Name: SkillLibrary
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1052864083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1052864082}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce628b8db5478d14da98293f807e48db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &1052864084
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1052864082}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 13
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1208172245
 GameObject:
   m_ObjectHideFlags: 0
@@ -4580,6 +4627,7 @@ GameObject:
   - component: {fileID: 1208172247}
   - component: {fileID: 1208172246}
   - component: {fileID: 1208172251}
+  - component: {fileID: 1208172252}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -4754,6 +4802,23 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
+--- !u!114 &1208172252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1208172245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99ef860d8cbd4a94cacbd0693c4514bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slotNum: 3
+  skills:
+  - {fileID: 1052864083}
+  - {fileID: 1052864083}
+  - {fileID: 1052864083}
 --- !u!1 &1297435638
 GameObject:
   m_ObjectHideFlags: 0
@@ -4795,7 +4860,7 @@ BoxCollider2D:
   m_GameObject: {fileID: 1297435638}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: b5e7b216ac7f3694a9b953d2a764a252, type: 2}
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
@@ -9812,7 +9877,7 @@ BoxCollider2D:
   m_GameObject: {fileID: 1545042132}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: b5e7b216ac7f3694a9b953d2a764a252, type: 2}
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
@@ -10095,7 +10160,7 @@ BoxCollider2D:
   m_GameObject: {fileID: 1766494855}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: b5e7b216ac7f3694a9b953d2a764a252, type: 2}
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0

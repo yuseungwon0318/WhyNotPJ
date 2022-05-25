@@ -37,7 +37,7 @@ public sealed class ColorBasic
 
 		
 	}
-	public static List<Colors> allColors = new List<Colors>()
+	public static List<Colors> AllColors = new List<Colors>()
 	{
 		new Colors(IColored.ColorCodes.White),
 
@@ -91,16 +91,6 @@ public sealed class ColorBasic
 	   	{IColored.ColorCodes.Black, new Vector3() } // º¸·ù
 
 	};
-
-	public IColored.ColorCodes MixColor(IColored.ColorCodes baseC, IColored.ColorCodes catalyst)
-	{
-		GetDimention(baseC);
-		return IColored.ColorCodes.Teal;
-	}
-	public IColored.ColorCodes Replace(IColored.ColorCodes color)
-	{
-		return color;
-	}
 
 
 	static int GetDimention(IColored.ColorCodes v)
